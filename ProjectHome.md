@@ -1,0 +1,1 @@
+This is a GTK+/Glade editor for Sonic 2 Special Stages. It includes new and improved encoders and decoders for Nemesis, Kosinski, Saxman and Enigma formats, featuring perfect conpression for Kosinski, moduled Kosinski and Saxman formats.
