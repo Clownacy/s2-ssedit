@@ -37,13 +37,14 @@ void frame_mapping::read(istream &in, int ver) {
 }
 
 void frame_mapping::write(ostream &out, int ver) const {
-	if (ver == 1)
+	if (ver == 1) {
 		Write1(out, maps.size());
-	else
+	} else {
 		BigEndian::Write2(out, maps.size());
-	for (vector<single_mapping>::const_iterator it = maps.begin();
-	     it != maps.end(); ++it)
-		it->write(out, ver);
+	}
+	for (const auto & elem : maps) {
+		elem.write(out, ver);
+	}
 }
 
 void frame_mapping::print() const {
@@ -56,13 +57,13 @@ void frame_mapping::print() const {
 }
 
 struct SingleMapCmp {
-	bool operator()(single_mapping const &lhs,single_mapping const &rhs) {
+	bool operator()(single_mapping const &lhs, single_mapping const &rhs) {
 		return lhs.get_tile() < rhs.get_tile();
 	}
 };
 
 struct SingleDPLCCmp {
-	bool operator()(single_dplc const &lhs,single_dplc const &rhs) {
+	bool operator()(single_dplc const &lhs, single_dplc const &rhs) {
 		return lhs.get_tile() + lhs.get_cnt() < rhs.get_tile();
 	}
 };
@@ -71,14 +72,12 @@ void frame_mapping::split(frame_mapping const &src, frame_dplc &dplc) {
 	// Coalesce the mappings tiles into tile ranges, reodering adjacent DPLCs
 	// that are neighbours in art to coalesce the ranges as needed.
 	vector<pair<size_t, size_t>> ranges;
-	for (vector<single_mapping>::const_iterator it = src.maps.begin();
-	     it != src.maps.end(); ++it) {
-		single_mapping const &sd = *it;
+	for (const auto & sd : src.maps) {
 		size_t ss = sd.get_tile(), sz = sd.get_sx() * sd.get_sy();
 		if (ranges.empty()) {
 			// Happens only once. Hopefully, the compiler will pull this out of
 			// the loop, as it happens right at the start of the loop.
-			ranges.push_back(make_pair(ss, sz));
+			ranges.emplace_back(ss, sz);
 		} else {
 			pair<size_t, size_t> &last = ranges.back();
 			if (last.first == ss + sz) {
@@ -92,7 +91,7 @@ void frame_mapping::split(frame_mapping const &src, frame_dplc &dplc) {
 				last.second += sz;
 			} else {
 				// Disjoint DPLCs. Add new one.
-				ranges.push_back(make_pair(ss, sz));
+				ranges.emplace_back(ss, sz);
 			}
 		}
 	}
@@ -105,11 +104,11 @@ void frame_mapping::split(frame_mapping const &src, frame_dplc &dplc) {
 	// Build VRAM map for coalesced ranges.
 	map<size_t, size_t> vram_map;
 	for (vector<pair<size_t, size_t>>::const_iterator it = ranges.begin();
-	     it != ranges.end(); ++it) {
+	        it != ranges.end(); ++it) {
 		size_t ss = it->first, sz = it->second;
 		for (size_t i = ss; i < ss + sz; i++) {
 			if (vram_map.find(i) == vram_map.end()) {
-				vram_map.insert(pair<size_t, size_t>(i, vram_map.size()));
+				vram_map.emplace(i, vram_map.size());
 			}
 		}
 	}
@@ -118,7 +117,7 @@ void frame_mapping::split(frame_mapping const &src, frame_dplc &dplc) {
 	set<single_dplc, SingleDPLCCmp> uniquedplcs;
 	frame_dplc newdplc;
 	for (vector<pair<size_t, size_t>>::const_iterator it = ranges.begin();
-	     it != ranges.end(); ++it) {
+	        it != ranges.end(); ++it) {
 		size_t ss = it->first, sz = 1;
 		while (vram_map.find(ss + sz) != vram_map.end()) {
 			sz++;
@@ -126,7 +125,7 @@ void frame_mapping::split(frame_mapping const &src, frame_dplc &dplc) {
 		single_dplc nd;
 		nd.set_tile(ss);
 		nd.set_cnt(sz);
-		set<single_dplc>::iterator sit = uniquedplcs.find(nd);
+		auto sit = uniquedplcs.find(nd);
 		if (sit == uniquedplcs.end()) {
 			newdplc.insert(nd);
 			uniquedplcs.insert(nd);
@@ -135,9 +134,7 @@ void frame_mapping::split(frame_mapping const &src, frame_dplc &dplc) {
 	dplc.consolidate(newdplc);
 
 	set<size_t> loaded_tiles;
-	for (vector<single_mapping>::const_iterator it = src.maps.begin();
-	        it != src.maps.end(); ++it) {
-		single_mapping const &sd = *it;
+	for (const auto & sd : src.maps) {
 		single_mapping nn;
 		single_dplc dd;
 		nn.split(sd, dd, vram_map);
@@ -149,9 +146,7 @@ void frame_mapping::merge(frame_mapping const &src, frame_dplc const &dplc) {
 	map<size_t, size_t> vram_map;
 	dplc.build_vram_map(vram_map);
 
-	for (vector<single_mapping>::const_iterator it = src.maps.begin();
-	     it != src.maps.end(); ++it) {
-		single_mapping const &sd = *it;
+	for (const auto & sd : src.maps) {
 		single_mapping nn;
 		nn.merge(sd, vram_map);
 		maps.push_back(nn);
@@ -159,21 +154,23 @@ void frame_mapping::merge(frame_mapping const &src, frame_dplc const &dplc) {
 }
 
 void frame_mapping::change_pal(int srcpal, int dstpal) {
-	for (vector<single_mapping>::iterator it = maps.begin();
-	     it != maps.end(); ++it)
-		it->change_pal(srcpal, dstpal);
+	for (auto & elem : maps) {
+		elem.change_pal(srcpal, dstpal);
+	}
 }
 
 bool frame_mapping::operator<(frame_mapping const &rhs) const {
-	if (maps.size() < rhs.maps.size())
+	if (maps.size() < rhs.maps.size()) {
 		return true;
-	else if (maps.size() > rhs.maps.size())
+	} else if (maps.size() > rhs.maps.size()) {
 		return false;
+	}
 	for (size_t ii = 0; ii < maps.size(); ii++) {
-		if (maps[ii] < rhs.maps[ii])
+		if (maps[ii] < rhs.maps[ii]) {
 			return true;
-		else if (rhs.maps[ii] < maps[ii])
+		} else if (rhs.maps[ii] < maps[ii]) {
 			return false;
+		}
 	}
 	return false;
 }

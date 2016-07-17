@@ -27,17 +27,11 @@
 #include <set>
 #include <vector>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wold-style-cast"
-#pragma GCC diagnostic ignored "-Wredundant-decls"
-#pragma GCC diagnostic ignored "-Winline"
-#include <gtkmm.h>
-#pragma GCC diagnostic pop
-
 #include "sseditor.h"
 
-#include "ssobjfile.h"
+#include "ignore_unused_variable_warning.h"
 #include "bigendian_io.h"
+#include "ssobjfile.h"
 
 //#define DEBUG 1
 #ifdef WIN32
@@ -53,7 +47,7 @@
 #   endif
 #endif
 
-sseditor *sseditor::instance = 0;
+sseditor *sseditor::instance = nullptr;
 
 using namespace std;
 
@@ -62,8 +56,8 @@ sseditor::sseditor(int argc, char *argv[], char const *uifile)
 	  currstage(0), currsegment(0),
 	  mouse_x(0), mouse_y(0), state(0), mode(eSelectMode),
 	  ringmode(eSingle), bombmode(eSingle), copypos(0), drawbox(false),
-	  snaptogrid(true), endpos(0), main_win(0) {
-	kit = shared_ptr<Gtk::Main>(new Gtk::Main(argc, argv));
+	  snaptogrid(true), endpos(0), main_win(nullptr) {
+	kit = make_shared<Gtk::Main>(argc, argv);
 
 	ringimg = Gdk::Pixbuf::create_from_file(RINGFILE);
 	bombimg = Gdk::Pixbuf::create_from_file(BOMBFILE);
@@ -182,7 +176,7 @@ sseditor::sseditor(int argc, char *argv[], char const *uifile)
 
 	pspecialstageobjs->signal_configure_event().connect(
 	    sigc::mem_fun(this, &sseditor::on_specialstageobjs_configure_event));
-	pspecialstageobjs->signal_expose_event().connect(
+		  pspecialstageobjs->signal_expose_event().connect(
 	    sigc::mem_fun(this, &sseditor::on_specialstageobjs_expose_event));
 	pspecialstageobjs->signal_key_press_event().connect(
 	    sigc::mem_fun(this, &sseditor::on_specialstageobjs_key_press_event));
@@ -382,11 +376,11 @@ size_t sseditor::get_current_segment() const {
 }
 
 size_t sseditor::get_segment(size_t pos) const {
-	vector<size_t>::const_iterator it = lower_bound(segpos.begin(),
-	                                                segpos.end(), pos);
+	auto it = lower_bound(segpos.begin(), segpos.end(), pos);
 	size_t seg = size_t(it - segpos.begin());
-	if (*it == pos)
+	if (*it == pos) {
 		return seg;
+	}
 	return seg - 1;
 }
 
@@ -403,13 +397,15 @@ void sseditor::update_segment_positions(bool setpos) {
 	     << (draw_height / IMAGE_SIZE) << endl;
 	pvscrollbar->set_range(0.0, endpos + 9 - (draw_height / IMAGE_SIZE));
 	pvscrollbar->set_increments(4, 32);
-	if (setpos)
+	if (setpos) {
 		goto_segment(currsegment);
+	}
 }
 
 void sseditor::update() {
-	if (update_in_progress)
+	if (update_in_progress) {
 		return;
+	}
 
 	update_in_progress = true;
 
@@ -417,8 +413,9 @@ void sseditor::update() {
 		psavefilebutton->set_sensitive(false);
 		prevertfilebutton->set_sensitive(false);
 
-		for (int i = int(eSelectMode); i < int(eNumModes); i++)
+		for (int i = int(eSelectMode); i < int(eNumModes); i++) {
 			pmodebuttons[i]->set_sensitive(false);
+		}
 
 		pmodenotebook->set_sensitive(false);
 		pstage_toolbar->set_sensitive(false);
@@ -441,8 +438,9 @@ void sseditor::update() {
 		pundobutton->set_sensitive(undostack.size());
 		predobutton->set_sensitive(redostack.size());
 
-		for (int i = int(eSelectMode); i < int(eNumModes); i++)
+		for (int i = int(eSelectMode); i < int(eNumModes); i++) {
 			pmodebuttons[i]->set_sensitive(true);
+		}
 
 		pmodenotebook->set_sensitive(true);
 		pstage_toolbar->set_sensitive(true);
@@ -450,7 +448,7 @@ void sseditor::update() {
 		unsigned numstages = specialstages->num_stages();
 
 		if (numstages == 0 || currstage == numstages - 1
-		    || numstages <= currstage) {
+		        || numstages <= currstage) {
 			if (numstages == 0) {
 				currstage = 0;
 			} else {
@@ -504,7 +502,7 @@ void sseditor::update() {
 			pinsert_stage_before_button->set_sensitive(true);
 			pcut_stage_button->set_sensitive(true);
 			pcopy_stage_button->set_sensitive(true);
-			ppaste_stage_button->set_sensitive(copylevel != 0);
+			ppaste_stage_button->set_sensitive(copylevel != nullptr);
 			pdelete_stage_button->set_sensitive(true);
 			char buf[20];
 			sprintf(buf, "%d", numstages);
@@ -517,7 +515,7 @@ void sseditor::update() {
 			unsigned numsegments = segpos.size();
 
 			if (numsegments == 0 || currsegment == numsegments - 1
-			    || numsegments <= currsegment) {
+			        || numsegments <= currsegment) {
 				if (numsegments == 0) {
 					currsegment = 0;
 				} else {
@@ -572,7 +570,7 @@ void sseditor::update() {
 				pinsert_segment_before_button->set_sensitive(true);
 				pcut_segment_button->set_sensitive(true);
 				pcopy_segment_button->set_sensitive(true);
-				ppaste_segment_button->set_sensitive(copyseg != 0);
+				ppaste_segment_button->set_sensitive(copyseg != nullptr);
 				pdelete_segment_button->set_sensitive(true);
 
 				psegment_expander->set_sensitive(true);
@@ -628,10 +626,11 @@ void sseditor::update() {
 						psegment_turnthenrise->set_active(true);
 						break;
 				}
-				if (currseg->get_direction())
+				if (currseg->get_direction()) {
 					psegment_left->set_active(true);
-				else
+				} else {
 					psegment_right->set_active(true);
+				}
 
 				if (selection.empty()) {
 					pringtype->set_inconsistent(true);
@@ -639,12 +638,12 @@ void sseditor::update() {
 					pobject_expander->set_sensitive(false);
 				} else {
 					size_t nrings = 0, nbombs = 0;
-					for (set<object>::iterator it = selection.begin();
-					     it != selection.end(); ++it) {
-						if (it->get_type() == sssegments::eBomb)
+					for (const auto & elem : selection) {
+						if (elem.get_type() == sssegments::eBomb) {
 							++nbombs;
-						else
+						} else {
 							++nrings;
+						}
 					}
 					pobject_expander->set_sensitive(true);
 					if ((nbombs > 0 && nrings > 0) ||
@@ -671,13 +670,15 @@ void sseditor::update() {
 }
 
 void sseditor::run() {
-	if (main_win)
+	if (main_win) {
 		kit->run(*main_win);
+	}
 }
 
 void sseditor::on_vscrollbar_value_changed() {
-	if (update_in_progress)
+	if (update_in_progress) {
 		return;
+	}
 	currsegment = get_current_segment();
 	render();
 	update();
@@ -691,12 +692,13 @@ void sseditor::on_filedialog_response(int response_id) {
 			       objectfile = dirname + SS_OBJECT_FILE;
 			ifstream fobj(objectfile.c_str(), ios::in | ios::binary),
 			         flay(layoutfile.c_str(), ios::in | ios::binary);
-			if (!fobj.good() || !flay.good())
+			if (!fobj.good() || !flay.good()) {
 				return;
+			}
 
 			fobj.close();
 			flay.close();
-			specialstages = shared_ptr<ssobj_file>(new ssobj_file(dirname));
+			specialstages = make_shared<ssobj_file>(dirname);
 			undostack.clear();
 			redostack.clear();
 			selection.clear();
@@ -722,8 +724,9 @@ void sseditor::on_openfilebutton_clicked() {
 		    sigc::mem_fun(this, &sseditor::on_filedialog_response));
 	}
 
-	if (filedlg)
+	if (filedlg) {
 		filedlg->run();
+	}
 }
 
 void sseditor::on_savefilebutton_clicked() {
@@ -746,48 +749,57 @@ void sseditor::on_revertfilebutton_clicked() {
 }
 
 void sseditor::on_undobutton_clicked() {
-	if (redostack.size() == 100)
+	if (redostack.size() == 100) {
 		redostack.pop_back();
+	}
 
 	shared_ptr<abstract_action> act = undostack.front();
 	undostack.pop_front();
 	redostack.push_front(act);
 	act->revert(specialstages, &selection);
-	if (mode != eSelectMode)
+	if (mode != eSelectMode) {
 		selection.clear();
+	}
 
-	if (currstage >= specialstages->num_stages())
+	if (currstage >= specialstages->num_stages()) {
 		currstage = specialstages->num_stages() - 1;
+	}
 	update_segment_positions(false);
-	if (currsegment >= segpos.size())
+	if (currsegment >= segpos.size()) {
 		goto_segment(segpos.size() - 1);
+	}
 
 	render();
 	update();
 }
 
 void sseditor::on_redobutton_clicked() {
-	if (undostack.size() == 100)
+	if (undostack.size() == 100) {
 		undostack.pop_back();
+	}
 
 	shared_ptr<abstract_action> act = redostack.front();
 	redostack.pop_front();
 	undostack.push_front(act);
 	act->apply(specialstages, &selection);
-	if (mode != eSelectMode)
+	if (mode != eSelectMode) {
 		selection.clear();
+	}
 
-	if (currstage >= specialstages->num_stages())
+	if (currstage >= specialstages->num_stages()) {
 		currstage = specialstages->num_stages() - 1;
+	}
 	update_segment_positions(false);
-	if (currsegment >= segpos.size())
+	if (currsegment >= segpos.size()) {
 		goto_segment(segpos.size() - 1);
+	}
 
 	render();
 	update();
 }
 
-void sseditor::on_helpdialog_response(int UNUSED(response_id)) {
+void sseditor::on_helpdialog_response(int response_id) {
+	ignore_unused_variable_warning(response_id);
 	helpdlg->hide();
 }
 
@@ -797,11 +809,13 @@ void sseditor::on_helpbutton_clicked() {
 		helpdlg->signal_response().connect(
 		    sigc::mem_fun(this, &sseditor::on_helpdialog_response));
 	}
-	if (helpdlg)
+	if (helpdlg) {
 		helpdlg->run();
+	}
 }
 
-void sseditor::on_aboutdialog_response(int UNUSED(response_id)) {
+void sseditor::on_aboutdialog_response(int response_id) {
+	ignore_unused_variable_warning(response_id);
 	aboutdlg->hide();
 }
 
@@ -811,8 +825,9 @@ void sseditor::on_aboutbutton_clicked() {
 		aboutdlg->signal_response().connect(
 		    sigc::mem_fun(this, &sseditor::on_aboutdialog_response));
 	}
-	if (aboutdlg)
+	if (aboutdlg) {
 		aboutdlg->run();
+	}
 }
 
 void sseditor::on_quitbutton_clicked() {
@@ -823,8 +838,7 @@ void sseditor::on_cutbutton_clicked() {
 	copystack = selection;
 	copypos = pvscrollbar->get_value();
 
-	shared_ptr<abstract_action> act(new cut_selection_action(currstage,
-	                                                         copystack));
+	auto act = make_shared<cut_selection_action>(currstage, copystack);
 	do_action(act);
 
 	selection.clear();
@@ -843,20 +857,19 @@ void sseditor::on_pastebutton_clicked() {
 	int delta = pvscrollbar->get_value() - copypos;
 
 	selection.clear();
-	for (set<object>::iterator it = copystack.begin();
-	     it != copystack.end(); ++it) {
-		int newpos = segpos[it->get_segment()] + it->get_pos() + delta;
-		if (newpos < 0)
+	for (const auto & elem : copystack) {
+		int newpos = segpos[elem.get_segment()] + elem.get_pos() + delta;
+		if (newpos < 0) {
 			newpos = 0;
-		else if (newpos > maxpos)
+		} else if (newpos > maxpos) {
 			newpos = maxpos;
+		}
 
 		int newseg = get_segment(newpos), newy = newpos - segpos[newseg];
-		selection.insert(object(newseg, it->get_angle(), newy, it->get_type()));
+		selection.emplace(newseg, elem.get_angle(), newy, elem.get_type());
 	}
 
-	shared_ptr<abstract_action> act(new paste_objects_action(currstage,
-	                                                         selection));
+	auto act = make_shared<paste_objects_action>(currstage, selection);
 	do_action(act);
 
 	render();
@@ -864,8 +877,7 @@ void sseditor::on_pastebutton_clicked() {
 }
 
 void sseditor::on_deletebutton_clicked() {
-	shared_ptr<abstract_action> act(new delete_selection_action(currstage,
-	                                                            selection));
+	auto act = make_shared<delete_selection_action>(currstage, selection);
 	do_action(act);
 
 	selection.clear();
@@ -876,8 +888,9 @@ void sseditor::on_deletebutton_clicked() {
 void sseditor::on_first_stage_button_clicked() {
 	currstage = 0;
 	update_segment_positions(false);
-	if (currsegment >= segpos.size())
+	if (currsegment >= segpos.size()) {
 		goto_segment(segpos.size() - 1);
+	}
 	render();
 	update();
 }
@@ -886,8 +899,9 @@ void sseditor::on_previous_stage_button_clicked() {
 	if (currstage > 0) {
 		currstage--;
 		update_segment_positions(false);
-		if (currsegment >= segpos.size())
+		if (currsegment >= segpos.size()) {
 			goto_segment(segpos.size() - 1);
+		}
 		render();
 		update();
 	}
@@ -897,8 +911,9 @@ void sseditor::on_next_stage_button_clicked() {
 	if (currstage + 1 < specialstages->num_stages()) {
 		currstage++;
 		update_segment_positions(false);
-		if (currsegment >= segpos.size())
+		if (currsegment >= segpos.size()) {
 			goto_segment(segpos.size() - 1);
+		}
 		render();
 		update();
 	}
@@ -907,20 +922,21 @@ void sseditor::on_next_stage_button_clicked() {
 void sseditor::on_last_stage_button_clicked() {
 	currstage = specialstages->num_stages() - 1;
 	update_segment_positions(false);
-	if (currsegment >= segpos.size())
+	if (currsegment >= segpos.size()) {
 		goto_segment(segpos.size() - 1);
+	}
 	render();
 	update();
 }
 
 void sseditor::on_insert_stage_before_button_clicked() {
-	shared_ptr<abstract_action> act(new insert_stage_action(currstage,
-	                                                        sslevels()));
+	auto act = make_shared<insert_stage_action>(currstage, sslevels());
 	do_action(act);
 
 	update_segment_positions(false);
-	if (currsegment >= segpos.size())
+	if (currsegment >= segpos.size()) {
 		goto_segment(segpos.size() - 1);
+	}
 	render();
 	update();
 }
@@ -928,92 +944,98 @@ void sseditor::on_insert_stage_before_button_clicked() {
 void sseditor::on_append_stage_button_clicked() {
 	currstage = specialstages->num_stages();
 
-	shared_ptr<abstract_action> act(new insert_stage_action(currstage,
-	                                                        sslevels()));
+	auto act = make_shared<insert_stage_action>(currstage, sslevels());
 	do_action(act);
 
 	update_segment_positions(false);
-	if (currsegment >= segpos.size())
+	if (currsegment >= segpos.size()) {
 		goto_segment(segpos.size() - 1);
+	}
 	render();
 	update();
 }
 
 void sseditor::on_cut_stage_button_clicked() {
 	sslevels *lev = specialstages->get_stage(currstage);
-	copylevel = shared_ptr<sslevels>(new sslevels(*lev));
-	shared_ptr<abstract_action> act(new delete_stage_action(currstage,
-	                                                        *copylevel));
+	copylevel = make_shared<sslevels>(*lev);
+	auto act = make_shared<delete_stage_action>(currstage, *copylevel);
 	do_action(act);
 
-	if (currstage >= specialstages->num_stages())
+	if (currstage >= specialstages->num_stages()) {
 		currstage = specialstages->num_stages() - 1;
+	}
 	update_segment_positions(false);
-	if (currsegment >= segpos.size())
+	if (currsegment >= segpos.size()) {
 		goto_segment(segpos.size() - 1);
+	}
 	render();
 	update();
 }
 
 void sseditor::on_copy_stage_button_clicked() {
 	sslevels *lev = specialstages->get_stage(currstage);
-	copylevel = shared_ptr<sslevels>(new sslevels(*lev));
+	copylevel = make_shared<sslevels>(*lev);
 
 	update();
 }
 
 void sseditor::on_paste_stage_button_clicked() {
-	shared_ptr<abstract_action> act(new paste_stage_action(++currstage,
-	                                                       *copylevel));
+	auto act = make_shared<paste_stage_action>(++currstage, *copylevel);
 	do_action(act);
 
-	if (currstage >= specialstages->num_stages())
+	if (currstage >= specialstages->num_stages()) {
 		currstage = specialstages->num_stages() - 1;
+	}
 	update_segment_positions(false);
-	if (currsegment >= segpos.size())
+	if (currsegment >= segpos.size()) {
 		goto_segment(segpos.size() - 1);
+	}
 	render();
 	update();
 }
 
 void sseditor::on_delete_stage_button_clicked() {
 	sslevels *lev = specialstages->get_stage(currstage);
-	shared_ptr<abstract_action> act(new delete_stage_action(currstage, *lev));
+	auto act = make_shared<delete_stage_action>(currstage, *lev);
 	do_action(act);
 
-	if (currstage >= specialstages->num_stages())
+	if (currstage >= specialstages->num_stages()) {
 		currstage = specialstages->num_stages() - 1;
+	}
 	update_segment_positions(false);
-	if (currsegment >= segpos.size())
+	if (currsegment >= segpos.size()) {
 		goto_segment(segpos.size() - 1);
+	}
 	render();
 	update();
 }
 
 void sseditor::on_swap_stage_prev_button_clicked() {
-	shared_ptr<abstract_action> act(new move_stage_action(currstage, -1));
+	auto act = make_shared<move_stage_action>(currstage, -1);
 	do_action(act);
 
 	// Sanity check.
 	assert(currstage != 0);
 	currstage--;
 	update_segment_positions(false);
-	if (currsegment >= segpos.size())
+	if (currsegment >= segpos.size()) {
 		goto_segment(segpos.size() - 1);
+	}
 	render();
 	update();
 }
 
 void sseditor::on_swap_stage_next_button_clicked() {
-	shared_ptr<abstract_action> act(new move_stage_action(currstage, +1));
+	auto act = make_shared<move_stage_action>(currstage, +1);
 	do_action(act);
 
 	// Sanity check.
 	assert(currstage + 1 < specialstages->num_stages());
 	currstage++;
 	update_segment_positions(false);
-	if (currsegment >= segpos.size())
+	if (currsegment >= segpos.size()) {
 		goto_segment(segpos.size() - 1);
+	}
 	render();
 	update();
 }
@@ -1047,9 +1069,7 @@ void sseditor::on_last_segment_button_clicked() {
 }
 
 void sseditor::on_insert_segment_before_button_clicked() {
-	shared_ptr<abstract_action> act(new insert_segment_action(currstage,
-	                                                          currsegment,
-	                                                          sssegments()));
+	auto act = make_shared<insert_segment_action>(currstage, currsegment, sssegments());
 	do_action(act);
 
 	update_segment_positions(true);
@@ -1060,8 +1080,7 @@ void sseditor::on_insert_segment_before_button_clicked() {
 void sseditor::on_append_segment_button_clicked() {
 	int cs = specialstages->get_stage(currstage)->num_segments();
 
-	shared_ptr<abstract_action> act(new insert_segment_action(currstage, cs,
-	                                                          sssegments()));
+	auto act = make_shared<insert_segment_action>(currstage, cs, sssegments());
 	do_action(act);
 
 	update_segment_positions(false);
@@ -1073,15 +1092,14 @@ void sseditor::on_append_segment_button_clicked() {
 void sseditor::on_cut_segment_button_clicked() {
 	sssegments *seg =
 	    specialstages->get_stage(currstage)->get_segment(currsegment);
-	copyseg = shared_ptr<sssegments>(new sssegments(*seg));
-	shared_ptr<abstract_action> act(new cut_segment_action(currstage,
-	                                                       currsegment,
-	                                                       *copyseg));
+	copyseg = make_shared<sssegments>(*seg);
+	auto act = make_shared<cut_segment_action>(currstage, currsegment, *copyseg);
 	do_action(act);
 
 	update_segment_positions(false);
-	if (currsegment >= segpos.size())
+	if (currsegment >= segpos.size()) {
 		goto_segment(segpos.size() - 1);
+	}
 	render();
 	update();
 }
@@ -1089,20 +1107,19 @@ void sseditor::on_cut_segment_button_clicked() {
 void sseditor::on_copy_segment_button_clicked() {
 	sssegments *seg =
 	    specialstages->get_stage(currstage)->get_segment(currsegment);
-	copyseg = shared_ptr<sssegments>(new sssegments(*seg));
+	copyseg = make_shared<sssegments>(*seg);
 
 	update();
 }
 
 void sseditor::on_paste_segment_button_clicked() {
-	shared_ptr<abstract_action> act(new paste_segment_action(currstage,
-	                                                         currsegment,
-	                                                         *copyseg));
+	auto act = make_shared<paste_segment_action>(currstage, currsegment, *copyseg);
 	do_action(act);
 
 	update_segment_positions(false);
-	if (currsegment >= segpos.size())
+	if (currsegment >= segpos.size()) {
 		goto_segment(segpos.size() - 1);
+	}
 	render();
 	update();
 }
@@ -1110,21 +1127,19 @@ void sseditor::on_paste_segment_button_clicked() {
 void sseditor::on_delete_segment_button_clicked() {
 	sssegments const &seg =
 	    *specialstages->get_stage(currstage)->get_segment(currsegment);
-	shared_ptr<abstract_action> act(new delete_segment_action(currstage,
-	                                                          currsegment,
-	                                                          seg));
+	auto act = make_shared<delete_segment_action>(currstage, currsegment, seg);
 	do_action(act);
 
 	update_segment_positions(false);
-	if (currsegment >= segpos.size())
+	if (currsegment >= segpos.size()) {
 		goto_segment(segpos.size() - 1);
+	}
 	render();
 	update();
 }
 
 void sseditor::on_swap_segment_prev_button_clicked() {
-	shared_ptr<abstract_action> act(new move_segment_action(currstage,
-	                                                        currsegment, -1));
+	auto act = make_shared<move_segment_action>(currstage, currsegment, -1);
 	do_action(act);
 
 	// Sanity check.
@@ -1136,8 +1151,7 @@ void sseditor::on_swap_segment_prev_button_clicked() {
 }
 
 void sseditor::on_swap_segment_next_button_clicked() {
-	shared_ptr<abstract_action> act(new move_segment_action(currstage,
-	                                                        currsegment, +1));
+	auto act = make_shared<move_segment_action>(currstage, currsegment, +1);
 	do_action(act);
 
 	// Sanity check.
@@ -1149,26 +1163,28 @@ void sseditor::on_swap_segment_next_button_clicked() {
 }
 
 bool sseditor::move_object(int dx, int dy) {
-	if (!specialstages || selection.empty())
+	if (!specialstages || selection.empty()) {
 		return true;
+	}
 
 	set<object> temp;
 	sslevels *currlvl = specialstages->get_stage(currstage);
 	int numsegments = segpos.size();
 
-	for (set<object>::iterator it = selection.begin();
-	     it != selection.end(); ++it) {
-		int oldseg = it->get_segment(), oldx = it->get_angle(),
-		    oldy = it->get_pos();
+	for (const auto & elem : selection) {
+		int oldseg = elem.get_segment(), oldx = elem.get_angle(),
+		    oldy = elem.get_pos();
 		//sssegments::ObjectTypes oldtype = it->get_type();
 
-		if (oldseg >= numsegments)
+		if (oldseg >= numsegments) {
 			continue;
+		}
 
 		sssegments *currseg = currlvl->get_segment(oldseg);
 		sssegments::ObjectTypes type;
-		if (!currseg->exists(oldy, oldx, type))
+		if (!currseg->exists(oldy, oldx, type)) {
 			continue;
+		}
 
 		int newx = (oldx + dx) & 0xff, newy = (oldy + dy) & 0x3f;
 
@@ -1184,17 +1200,14 @@ bool sseditor::move_object(int dx, int dy) {
 
 		int pos = (newy + segpos[oldseg]) * IMAGE_SIZE,
 		    loc = pvscrollbar->get_value() * IMAGE_SIZE;
-		if (pos < loc || pos >= loc + draw_height)
+		if (pos < loc || pos >= loc + draw_height) {
 			pvscrollbar->set_value(pos / IMAGE_SIZE);
+		}
 
-		object obj(*it);
-		obj.set_angle(newx);
-		obj.set_pos(newy);
-		temp.insert(obj);
+		temp.emplace(elem.get_segment(), newx, newy, elem.get_type());
 	}
 
-	shared_ptr<abstract_action> act(new move_objects_action(currstage,
-	                                                        selection, temp));
+	auto act = make_shared<move_objects_action>(currstage, selection, temp);
 	do_action(act);
 
 	selection.swap(temp);
@@ -1210,8 +1223,7 @@ bool sseditor::on_specialstageobjs_configure_event(GdkEventConfigure *event) {
 	if (!drop_enabled) {
 		drop_enabled = true;
 		vector<Gtk::TargetEntry> vec;
-		vec.push_back(Gtk::TargetEntry("SpecialStageObjects",
-		                               Gtk::TargetFlags(0), 1));
+		vec.emplace_back("SpecialStageObjects", Gtk::TargetFlags(0), 1);
 		pspecialstageobjs->drag_dest_set(vec, Gtk::DEST_DEFAULT_ALL,
 		                                 Gdk::ACTION_MOVE);
 		pspecialstageobjs->signal_drag_data_received().connect(
@@ -1227,8 +1239,9 @@ bool sseditor::on_specialstageobjs_configure_event(GdkEventConfigure *event) {
 void sseditor::render() {
 	Glib::RefPtr<Gdk::Window> window = pspecialstageobjs->get_window();
 
-	if (!window)
+	if (!window) {
 		return;
+	}
 
 	Cairo::RefPtr<Cairo::Context> cr = window->create_cairo_context();
 
@@ -1237,8 +1250,9 @@ void sseditor::render() {
 	cr->paint();
 
 	if (!specialstages) {
-		if (drawimg)
+		if (drawimg) {
 			drawimg->unreference();
+		}
 		drawimg = cr->pop_group();
 		return;
 	}
@@ -1275,8 +1289,9 @@ void sseditor::render() {
 
 	for (int i = start; i <= end; i++) {
 		int seg = get_segment(i);
-		if (seg >= numsegments)
+		if (seg >= numsegments) {
 			break;
+		}
 
 		if ((i + 1) % 4 == 0) {
 			cr->set_line_width(IMAGE_SIZE / 2);
@@ -1287,7 +1302,8 @@ void sseditor::render() {
 			cr->line_to(angle_to_x(0x80), ty);
 			cr->stroke();
 			// Horizontal balls.
-			for (double angle = 0.0; angle < 48.0; angle += 64.0 / 3.0) {
+			for (int iangle = 0; iangle < 3; iangle++) {
+				double angle = (iangle * 64.0) / 3.0;
 				cr->set_source_rgb(180.0 / 256.0, 108.0 / 256.0, 36.0 / 256.0);
 				cr->arc(angle_to_x(angle + 0x80) + IMAGE_SIZE / 2, ty,
 				        IMAGE_SIZE / 2, 0.0, 2.0 * M_PI);
@@ -1368,45 +1384,49 @@ void sseditor::render() {
 
 	for (int i = start; i <= end; i++) {
 		int seg = get_segment(i);
-		if (seg >= numsegments)
+		if (seg >= numsegments) {
 			break;
+		}
 
 		sssegments *currseg = currlvl->get_segment(seg);
 		sssegments::segobjs::mapped_type const &row =
 		    currseg->get_row(i - segpos[seg]);
-		for (sssegments::segobjs::mapped_type::const_iterator it = row.begin();
-		        it != row.end(); ++it) {
-			Glib::RefPtr<Gdk::Pixbuf> image = (it->second == sssegments::eBomb)
+		for (const auto & elem : row) {
+			Glib::RefPtr<Gdk::Pixbuf> image = (elem.second == sssegments::eBomb)
 			                                  ? bombimg : ringimg;
 
 			int ty = (i - pvscrollbar->get_value()) * IMAGE_SIZE,
-			    tx = angle_to_x(it->first) - image->get_width() / 2;
+			    tx = angle_to_x(elem.first) - image->get_width() / 2;
 			Gdk::Cairo::set_source_pixbuf(cr, image, tx, ty);
 			cr->paint();
 		}
 	}
 
-	if (drawimg)
+	if (drawimg) {
 		drawimg->unreference();
+	}
 	drawimg = cr->pop_group();
 }
 
 void sseditor::show() {
-	if (!drawimg)
+	if (!drawimg) {
 		render();
+	}
 
 	Glib::RefPtr<Gdk::Window> window = pspecialstageobjs->get_window();
 
-	if (!window)
+	if (!window) {
 		return;
+	}
 
 	Cairo::RefPtr<Cairo::Context> cr = window->create_cairo_context();
 
 	cr->set_source(drawimg);
 	cr->paint();
 
-	if (!specialstages)
+	if (!specialstages) {
 		return;
+	}
 
 	hotspot.reset();
 	int start = pvscrollbar->get_value(),
@@ -1417,20 +1437,20 @@ void sseditor::show() {
 
 	for (int i = start; i <= end && !hotspot.valid(); i++) {
 		size_t seg = get_segment(i);
-		if (seg >= numsegments)
+		if (seg >= numsegments) {
 			break;
+		}
 
 		sssegments *currseg = currlvl->get_segment(seg);
 		sssegments::segobjs::mapped_type const &row =
 		    currseg->get_row(i - segpos[seg]);
-		for (sssegments::segobjs::mapped_type::const_iterator it = row.begin();
-		        it != row.end(); ++it) {
+		for (const auto & elem : row) {
 			int ty = (i - pvscrollbar->get_value()) * IMAGE_SIZE,
-			    tx = angle_to_x(it->first) - IMAGE_SIZE / 2;
+			    tx = angle_to_x(elem.first) - IMAGE_SIZE / 2;
 
 			if (mouse_x >= tx && mouse_y >= ty &&
 			        mouse_x < tx + IMAGE_SIZE && mouse_y < ty + IMAGE_SIZE) {
-				hotspot.set(seg, it->first, i - segpos[seg], it->second);
+				hotspot.set(seg, elem.first, i - segpos[seg], elem.second);
 				break;
 			}
 		}
@@ -1450,8 +1470,9 @@ void sseditor::show() {
 			cr->rectangle(tx, ty, IMAGE_SIZE, IMAGE_SIZE);
 			cr->stroke();
 		}
-		if (dragging)
+		if (dragging) {
 			draw_objects(insertstack, cr);
+		}
 		if (drawbox) {
 			int tx0 = angle_to_x(lastclick.get_angle()),
 			    ty0 = segpos[lastclick.get_segment()] + lastclick.get_pos();
@@ -1459,10 +1480,12 @@ void sseditor::show() {
 			    ty1 = segpos[boxcorner.get_segment()] + boxcorner.get_pos();
 			int dx = tx1 - tx0,
 			    dy = ty1 - ty0;
-			if (dx < 0)
+			if (dx < 0) {
 				swap(tx0, tx1);
-			if (dy < 0)
+			}
+			if (dy < 0) {
 				swap(ty0, ty1);
+			}
 			ty0 -= pvscrollbar->get_value();
 			ty1 -= pvscrollbar->get_value();
 			ty0 *= IMAGE_SIZE;
@@ -1486,10 +1509,12 @@ void sseditor::show() {
 			    ty1 = segpos[boxcorner.get_segment()] + boxcorner.get_pos();
 			int dx = tx1 - tx0,
 			    dy = ty1 - ty0;
-			if (dx < 0)
+			if (dx < 0) {
 				swap(tx0, tx1);
-			if (dy < 0)
+			}
+			if (dy < 0) {
 				swap(ty0, ty1);
+			}
 			ty0 -= pvscrollbar->get_value();
 			ty1 -= pvscrollbar->get_value();
 			ty0 *= IMAGE_SIZE;
@@ -1522,14 +1547,16 @@ void sseditor::show() {
 	}
 }
 
-bool sseditor::on_specialstageobjs_expose_event(GdkEventExpose *UNUSED(event)) {
+bool sseditor::on_specialstageobjs_expose_event(GdkEventExpose *event) {
+	ignore_unused_variable_warning(event);
 	show();
 	return true;
 }
 
 bool sseditor::on_specialstageobjs_key_press_event(GdkEventKey *event) {
-	if (!specialstages)
+	if (!specialstages) {
 		return true;
+	}
 
 	switch (event->keyval) {
 		case GDK_KEY_Up:
@@ -1542,13 +1569,13 @@ bool sseditor::on_specialstageobjs_key_press_event(GdkEventKey *event) {
 
 		case GDK_KEY_Left:
 		case GDK_KEY_KP_Left: {
-			bool ctrl = snaptogrid ^((event->state & GDK_CONTROL_MASK) != 0);
+			bool ctrl = snaptogrid ^ ((event->state & GDK_CONTROL_MASK) != 0);
 			return move_object(ctrl ? -4 : -1, 0);
 		}
 
 		case GDK_KEY_Right:
 		case GDK_KEY_KP_Right: {
-			bool ctrl = snaptogrid ^((event->state & GDK_CONTROL_MASK) != 0);
+			bool ctrl = snaptogrid ^ ((event->state & GDK_CONTROL_MASK) != 0);
 			return move_object(ctrl ? 4 : 1, 0);
 		}
 
@@ -1578,11 +1605,13 @@ bool sseditor::on_specialstageobjs_key_press_event(GdkEventKey *event) {
 bool sseditor::on_specialstageobjs_button_press_event(GdkEventButton *event) {
 	state = event->state;
 
-	if (!specialstages)
+	if (!specialstages) {
 		return true;
+	}
 
-	if (event->button != 1)
+	if (event->button != 1) {
 		return true;
+	}
 	int pos = event->y / IMAGE_SIZE + pvscrollbar->get_value(),
 	    seg = get_segment(pos);
 	lastclick.set(seg, x_to_angle_constrained(event->x), pos - segpos[seg]);
@@ -1590,13 +1619,15 @@ bool sseditor::on_specialstageobjs_button_press_event(GdkEventButton *event) {
 	selclear.reset();
 	if (mode == eSelectMode) {
 		if ((event->state & GDK_CONTROL_MASK) == 0 &&
-		        (!hotspot.valid() || selection.find(hotspot) == selection.end()))
+		        (!hotspot.valid() || selection.find(hotspot) == selection.end())) {
 			selection.clear();
+		}
 		if (hotspot.valid()) {
-			if (selection.find(hotspot) == selection.end())
+			if (selection.find(hotspot) == selection.end()) {
 				selection.insert(hotspot);
-			else
+			} else {
 				selclear = hotspot;
+			}
 		}
 		update();
 		return true;
@@ -1609,18 +1640,21 @@ bool sseditor::on_specialstageobjs_button_press_event(GdkEventButton *event) {
 
 bool sseditor::on_specialstageobjs_button_release_event(GdkEventButton *event) {
 	state = event->state;
-	if (!specialstages)
+	if (!specialstages) {
 		return true;
+	}
 
-	if (event->button == 1 && drawbox)
+	if (event->button == 1 && drawbox) {
 		drawbox = false;
+	}
 
 	size_t angle, pos, seg;
 	if (!hotspot.valid()) {
-		if (snaptogrid ^((state & GDK_CONTROL_MASK) != 0))
+		if (snaptogrid ^ ((state & GDK_CONTROL_MASK) != 0)) {
 			angle = x_to_angle_constrained(event->x + IMAGE_SIZE / 4);
-		else
+		} else {
 			angle = x_to_angle(event->x);
+		}
 
 		pos = event->y / IMAGE_SIZE + pvscrollbar->get_value();
 		seg = get_segment(pos);
@@ -1634,8 +1668,9 @@ bool sseditor::on_specialstageobjs_button_release_event(GdkEventButton *event) {
 	sslevels *currlvl = specialstages->get_stage(currstage);
 	size_t numsegments = segpos.size();
 
-	if (seg >= numsegments)
+	if (seg >= numsegments) {
 		return true;
+	}
 
 	sssegments *currseg = currlvl->get_segment(seg);
 
@@ -1643,13 +1678,13 @@ bool sseditor::on_specialstageobjs_button_release_event(GdkEventButton *event) {
 		case eSelectMode:
 			if (event->button == 1) {
 				if (!hotstack.empty()) {
-					for (set<object>::iterator it = hotstack.begin();
-					        it != hotstack.end(); ++it) {
-						set<object>::iterator it2 = selection.find(*it);
-						if (it2 == selection.end())
-							selection.insert(*it);
-						else
+					for (const auto & elem : hotstack) {
+						auto it2 = selection.find(elem);
+						if (it2 == selection.end()) {
+							selection.insert(elem);
+						} else {
 							selection.erase(it2);
+						}
 					}
 					hotstack.clear();
 				}
@@ -1662,40 +1697,34 @@ bool sseditor::on_specialstageobjs_button_release_event(GdkEventButton *event) {
 
 					if (type == sssegments::eBomb) {
 						set<object> temp;
-						temp.insert(object(seg, angle, pos, type));
-						act = shared_ptr<abstract_action>(new
-						        delete_selection_action(currstage, temp));
+						temp.emplace(seg, angle, pos, type);
+						act = make_shared<delete_selection_action>(currstage, temp);
 					} else {
-						selection.insert(object(seg, angle, pos, type));
-						act = shared_ptr<abstract_action>(new
-						        alter_selection_action(currstage,
-						                               sssegments::eBomb,
-						                               selection));
+						selection.emplace(seg, angle, pos, type);
+						act = make_shared<alter_selection_action>(currstage, sssegments::eBomb, selection);
 					}
 				} else {
-					selection.insert(object(seg, angle, pos, sssegments::eRing));
-					act = shared_ptr<abstract_action>(new
-					        insert_objects_action(currstage, selection));
+					selection.emplace(seg, angle, pos, sssegments::eRing);
+					act = make_shared<insert_objects_action>(currstage, selection);
 				}
 				do_action(act);
 			}
 			break;
 
 		case eDeleteMode: {
-			if (event->button != 1)
+			if (event->button != 1) {
 				break;
+			}
 			if (!hotstack.empty()) {
-				shared_ptr<abstract_action> act(new
-				        delete_selection_action(currstage, hotstack));
+				auto act = make_shared<delete_selection_action>(currstage, hotstack);
 				do_action(act);
 				hotstack.clear();
 			} else {
 				sssegments::ObjectTypes type;
 				if (currseg->exists(pos, angle, type)) {
 					set<object> temp;
-					temp.insert(object(seg, angle, pos, type));
-					shared_ptr<abstract_action> act(new
-					        delete_selection_action(currstage, temp));
+					temp.emplace(seg, angle, pos, type);
+					auto act = make_shared<delete_selection_action>(currstage, temp);
 					do_action(act);
 				}
 			}
@@ -1708,20 +1737,18 @@ bool sseditor::on_specialstageobjs_button_release_event(GdkEventButton *event) {
 			if (event->button == 1) {
 				if (!insertstack.empty()) {
 					set<object> delstack;
-					for (set<object>::iterator it = insertstack.begin();
-					     it != insertstack.end(); ++it) {
-						seg = it->get_segment();
-						if (seg >= numsegments)
+					for (const auto & elem : insertstack) {
+						seg = elem.get_segment();
+						if (seg >= numsegments) {
 							continue;
+						}
 						currseg = currlvl->get_segment(seg);
 						sssegments::ObjectTypes type;
-						if (currseg->exists(it->get_pos(), it->get_angle(), type))
-							delstack.insert(object(seg, it->get_angle(),
-							                       it->get_pos(), type));
+						if (currseg->exists(elem.get_pos(), elem.get_angle(), type)) {
+							delstack.emplace(seg, elem.get_angle(), elem.get_pos(), type);
+						}
 					}
-					shared_ptr<abstract_action> act(new
-					        insert_objects_ex_action(currstage, delstack,
-					                                 insertstack));
+					auto act = make_shared<insert_objects_ex_action>(currstage, delstack, insertstack);
 					do_action(act);
 					insertstack.clear();
 				}
@@ -1729,9 +1756,8 @@ bool sseditor::on_specialstageobjs_button_release_event(GdkEventButton *event) {
 				sssegments::ObjectTypes type;
 				if (currseg->exists(pos, angle, type)) {
 					set<object> temp;
-					temp.insert(object(seg, angle, pos, type));
-					shared_ptr<abstract_action> act(new
-					        delete_selection_action(currstage, temp));
+					temp.emplace(seg, angle, pos, type);
+					auto act = make_shared<delete_selection_action>(currstage, temp);
 					do_action(act);
 				}
 			}
@@ -1747,8 +1773,9 @@ bool sseditor::on_specialstageobjs_button_release_event(GdkEventButton *event) {
 
 bool sseditor::on_specialstageobjs_scroll_event(GdkEventScroll *event) {
 	state = event->state;
-	if (!specialstages)
+	if (!specialstages) {
 		return false;
+	}
 
 	//sslevels *currlvl = specialstages->get_stage(currstage);
 	//size_t numsegments = segpos.size();
@@ -1797,6 +1824,7 @@ bool sseditor::on_specialstageobjs_scroll_event(GdkEventScroll *event) {
 				pmodebuttons[mode]->set_active(true);
 			}
 			break;
+
 	}
 
 	return true;
@@ -1804,14 +1832,16 @@ bool sseditor::on_specialstageobjs_scroll_event(GdkEventScroll *event) {
 
 void sseditor::object_triangle(
     int x, int y, int dx, int dy, int h, sssegments::ObjectTypes type,
-    bool fill, set<object> &UNUSED(col)
+    bool fill, set<object> &col
 ) {
+	ignore_unused_variable_warning(col);
 	//sslevels *currlvl = specialstages->get_stage(currstage);
 	int numsegments = segpos.size();
 	int angle = x;
 	int seg = get_segment(y), pos = y - segpos[seg];
-	if (seg < numsegments)
-		insertstack.insert(object(seg, angle_normal(angle), pos, type));
+	if (seg < numsegments) {
+		insertstack.emplace(seg, angle_normal(angle), pos, type);
+	}
 	int delta;
 	int i, last;
 	if (h > 0) {
@@ -1830,59 +1860,66 @@ void sseditor::object_triangle(
 		seg = get_segment(i);
 		pos = i - segpos[seg];
 		i += dy;
-		if (seg >= numsegments)
+		if (seg >= numsegments) {
 			continue;
+		}
 
 		int tx;
 		if (fill) {
 			int const cnt = (2 * delta) / (IMAGE_SIZE / 2), middle = (cnt & 1) == 0;
-			double const dj = (2.0 * delta) / double(cnt) - (IMAGE_SIZE / 2);
-			double const min = middle ? double(IMAGE_SIZE / 4) : 0.0;
-			if (middle)
-				insertstack.insert(object(seg, angle_normal(angle), pos, type));
+			int const dj = 8 * delta;
+			int const min = middle ? cnt * IMAGE_SIZE : 0;
+			if (middle) {
+				insertstack.emplace(seg, angle_normal(angle), pos, type);
+			}
 
-			for (double j = delta; j >= min; j -= ((IMAGE_SIZE / 2) + dj)) {
-				tx = angle_normal(int(angle - j + 0x100) & 0xff);
-				insertstack.insert(object(seg, tx, pos, type));
-				tx = angle_normal(int(angle + j + 0x100) & 0xff);
-				insertstack.insert(object(seg, tx, pos, type));
+			for (int j = 4 * delta * cnt; j >= min; j -= dj) {
+				double jang = j / (4.0 * cnt);
+				tx = angle_normal(int(angle - jang + 0x100) & 0xff);
+				insertstack.emplace(seg, tx, pos, type);
+				tx = angle_normal(int(angle + jang + 0x100) & 0xff);
+				insertstack.emplace(seg, tx, pos, type);
 			}
 		} else {
 			tx = angle_normal((angle - delta + 0x100) & 0xff);
-			insertstack.insert(object(seg, tx, pos, type));
+			insertstack.emplace(seg, tx, pos, type);
 			tx = angle_normal((angle + delta + 0x100) & 0xff);
-			insertstack.insert(object(seg, tx, pos, type));
+			insertstack.emplace(seg, tx, pos, type);
 		}
 		delta += dx;
 	}
 }
 
 bool sseditor::on_specialstageobjs_motion_notify_event(GdkEventMotion *event) {
-	if (!specialstages)
+	if (!specialstages) {
 		return true;
+	}
 
 	state = event->state;
 
 	mouse_x = event->x;
 	mouse_y = event->y;
 
-	if ((event->state & GDK_BUTTON1_MASK) == 0)
+	if ((event->state & GDK_BUTTON1_MASK) == 0) {
 		drawbox = false;
+	}
 	if (drawbox || mode == eInsertRingMode || mode == eInsertBombMode ||
 	        ((event->state & GDK_BUTTON1_MASK) != 0 &&
 	         (!hotspot.valid() || selection.find(hotspot) == selection.end()))) {
 		if ((event->state & GDK_BUTTON1_MASK) != 0) {
-			if (event->y < 5)
+			if (event->y < 5) {
 				pvscrollbar->set_value(pvscrollbar->get_value() - 4.0);
-			else if (draw_height - event->y < 5)
+			} else if (draw_height - event->y < 5) {
 				pvscrollbar->set_value(pvscrollbar->get_value() + 4.0);
+			}
 		}
 		int angle1, pos1;
 		if (!hotspot.valid()) {
-			if (snaptogrid ^((event->state & GDK_CONTROL_MASK) != 0))
+			if (snaptogrid ^ ((event->state & GDK_CONTROL_MASK) != 0)) {
 				angle1 = x_to_angle_constrained(event->x + IMAGE_SIZE / 4);
-			else
+			} else {
 				angle1 = x_to_angle(event->x);
+			}
 
 			pos1 = event->y / IMAGE_SIZE + pvscrollbar->get_value();
 		} else {
@@ -1897,10 +1934,11 @@ bool sseditor::on_specialstageobjs_motion_notify_event(GdkEventMotion *event) {
 		    dpos = pos1 - pos0;
 		sslevels *currlvl = specialstages->get_stage(currstage);
 		int numsegments = segpos.size();
-		if (mode == eSelectMode || mode == eDeleteMode)
+		if (mode == eSelectMode || mode == eDeleteMode) {
 			hotstack.clear();
-		else
+		} else {
 			insertstack.clear();
+		}
 
 		switch (mode) {
 			case eSelectMode:
@@ -1909,21 +1947,25 @@ bool sseditor::on_specialstageobjs_motion_notify_event(GdkEventMotion *event) {
 					int seg1 = get_segment(pos1);
 					boxcorner.set(seg1, (angle1 + 0xc0) & 0xff,
 					              pos1 - segpos[seg1]);
-					if (dpos < 0)
+					if (dpos < 0) {
 						swap(pos0, pos1);
-					if (dangle < 0)
+					}
+					if (dangle < 0) {
 						swap(angle0, angle1);
+					}
 					drawbox = true;
 					for (int i = pos0; i <= pos1; i++) {
 						int seg = get_segment(i), pos = i - segpos[seg];
-						if (seg >= numsegments)
+						if (seg >= numsegments) {
 							continue;
+						}
 						for (int j = angle0; j <= angle1; j++) {
 							int angle = (j + 0xc0) & 0xff;
 							sssegments::ObjectTypes type;
 							sssegments *currseg = currlvl->get_segment(seg);
-							if (currseg->exists(pos, angle, type))
-								hotstack.insert(object(seg, angle, pos, type));
+							if (currseg->exists(pos, angle, type)) {
+								hotstack.emplace(seg, angle, pos, type);
+							}
 						}
 					}
 				}
@@ -1944,15 +1986,16 @@ bool sseditor::on_specialstageobjs_motion_notify_event(GdkEventMotion *event) {
 				if (submode == eSingle || (submode != eLoop && !dpos) ||
 				        (event->state & GDK_BUTTON1_MASK) == 0) {
 					int seg1 = get_segment(pos1);
-					insertstack.insert(object(seg1, angle_normal(angle1),
-					                          pos1 - segpos[seg1], type));
+					insertstack.emplace(seg1, angle_normal(angle1),
+					                    pos1 - segpos[seg1], type);
 					break;
 				}
 
 				int angledelta = dangle;
-				if (submode == eLine)
+				if (submode == eLine) {
 					angledelta /= (dpos > 0 ? dpos : -dpos);
-				if (snaptogrid ^((event->state & GDK_CONTROL_MASK) != 0)) {
+				}
+				if (snaptogrid ^ ((event->state & GDK_CONTROL_MASK) != 0)) {
 					angledelta += (angledelta >= 0 ? 3 : -3);
 					angledelta /= 4;
 					angledelta *= 4;
@@ -1966,11 +2009,11 @@ bool sseditor::on_specialstageobjs_motion_notify_event(GdkEventMotion *event) {
 						do {
 							int seg = get_segment(i), pos = i - segpos[seg];
 							i += delta;
-							if (seg >= numsegments)
+							if (seg >= numsegments) {
 								continue;
+							}
 
-							insertstack.insert(object(seg, angle_normal(angle),
-							                          pos, type));
+							insertstack.emplace(seg, angle_normal(angle), pos, type);
 							angle += angledelta + 0x100;
 							angle &= 0xff;
 						} while (i != pos1 + delta);
@@ -1981,22 +2024,26 @@ bool sseditor::on_specialstageobjs_motion_notify_event(GdkEventMotion *event) {
 						int nobj;
 						double delta;
 						if (dy != 0) {
-							if (snaptogrid ^((event->state & GDK_CONTROL_MASK) != 0)) {
-								if (angledelta >= 0 && angledelta < 4)
+							if (snaptogrid ^ ((event->state & GDK_CONTROL_MASK) != 0)) {
+								if (angledelta >= 0 && angledelta < 4) {
 									angledelta = 4;
-								else if (angledelta < 0 && angledelta > -4)
+								} else if (angledelta < 0 && angledelta > -4) {
 									angledelta = -4;
-							} else if (!angledelta)
+								}
+							} else if (!angledelta) {
 								angledelta = 1;
+							}
 							int sign = angledelta >= 0 ? 1 : -1;
 							int dx = sign * angledelta;
 							nobj = 0x100 / dx;
 							delta = sign * (double(0x100) / nobj);
 						} else {
-							if (angledelta < 0)
+							if (angledelta < 0) {
 								angledelta = -angledelta;
-							if (angledelta < IMAGE_SIZE / 2)
+							}
+							if (angledelta < IMAGE_SIZE / 2) {
 								angledelta = IMAGE_SIZE / 2;
+							}
 							nobj = (0x100 - angledelta) / angledelta;
 							delta = double(0x100 - angledelta) / nobj;
 						}
@@ -2004,31 +2051,31 @@ bool sseditor::on_specialstageobjs_motion_notify_event(GdkEventMotion *event) {
 						double angle = angle0;
 						for (int i = 0; i <= nobj; i++, pos0 += dy) {
 							int seg = get_segment(pos0), pos = pos0 - segpos[seg];
-							if (seg >= numsegments)
+							if (seg >= numsegments) {
 								continue;
-							insertstack.insert(
-							    object(seg, angle_normal(int(angle) & 0xff),
-							           pos, type));
+							}
+							insertstack.emplace(seg, angle_normal(int(angle) & 0xff), pos, type);
 							angle += delta + 0x100;
 						}
 						break;
 					}
 					case eZigzag: {
 						int const delta = dpos >= 0 ? 1 : -1;
-						if (angledelta > (IMAGE_SIZE / 2))
+						if (angledelta > (IMAGE_SIZE / 2)) {
 							angledelta = (IMAGE_SIZE / 2);
-						else if (angledelta < -(IMAGE_SIZE / 2))
+						} else if (angledelta < -(IMAGE_SIZE / 2)) {
 							angledelta = -(IMAGE_SIZE / 2);
+						}
 						int angle = angle0;
 						int i = pos0;
 						do {
 							int seg = get_segment(i), pos = i - segpos[seg];
 							i += delta;
-							if (seg >= numsegments)
+							if (seg >= numsegments) {
 								continue;
+							}
 
-							insertstack.insert(object(seg, angle_normal(angle),
-							                          pos, type));
+							insertstack.emplace(seg, angle_normal(angle), pos, type);
 							angle += angledelta + 0x100;
 							angle &= 0xff;
 							angledelta = -angledelta;
@@ -2037,35 +2084,38 @@ bool sseditor::on_specialstageobjs_motion_notify_event(GdkEventMotion *event) {
 					}
 					case eDiamond: {
 						int const delta = dpos >= 0 ? 1 : -1;
-						if (angledelta < 0)
+						if (angledelta < 0) {
 							angledelta = -angledelta;
-						if (angledelta > (IMAGE_SIZE / 2))
+						}
+						if (angledelta > (IMAGE_SIZE / 2)) {
 							angledelta = (IMAGE_SIZE / 2);
-						else if (angledelta < (IMAGE_SIZE / 4))
+						} else if (angledelta < (IMAGE_SIZE / 4)) {
 							angledelta = (IMAGE_SIZE / 4);
+						}
 						int angle = angle0;
 						int i = pos0 + delta;
 						int seg = get_segment(pos0), pos = pos0 - segpos[seg];
-						if (seg < numsegments)
-							insertstack.insert(object(seg, angle_normal(angle),
-							                          pos, type));
+						if (seg < numsegments) {
+							insertstack.emplace(seg, angle_normal(angle), pos, type);
+						}
 						seg = get_segment(pos1);
 						pos = pos1 - segpos[seg];
-						if (seg < numsegments)
-							insertstack.insert(object(seg, angle_normal(angle),
-							                          pos, type));
+						if (seg < numsegments) {
+							insertstack.emplace(seg, angle_normal(angle), pos, type);
+						}
 						while (i != pos1) {
 							seg = get_segment(i);
 							pos = i - segpos[seg];
 							i += delta;
-							if (seg >= numsegments)
+							if (seg >= numsegments) {
 								continue;
+							}
 
 							int tx =
 							    angle_normal((angle - angledelta + 0x100) & 0xff);
-							insertstack.insert(object(seg, tx, pos, type));
+							insertstack.emplace(seg, tx, pos, type);
 							tx = angle_normal((angle + angledelta + 0x100) & 0xff);
-							insertstack.insert(object(seg, tx, pos, type));
+							insertstack.emplace(seg, tx, pos, type);
 						}
 						break;
 					}
@@ -2073,12 +2123,14 @@ bool sseditor::on_specialstageobjs_motion_notify_event(GdkEventMotion *event) {
 					case eStar: {
 						bool fill = submode == eLozenge;
 						int const delta = dpos >= 0 ? 1 : -1;
-						if (angledelta < 0)
+						if (angledelta < 0) {
 							angledelta = -angledelta;
-						if (angledelta > (IMAGE_SIZE / 2))
+						}
+						if (angledelta > (IMAGE_SIZE / 2)) {
 							angledelta = (IMAGE_SIZE / 2);
-						else if (angledelta < (IMAGE_SIZE / 4))
+						} else if (angledelta < (IMAGE_SIZE / 4)) {
 							angledelta = (IMAGE_SIZE / 4);
+						}
 						if (dpos >= 0) {
 							object_triangle(angle0, pos0, angledelta, delta,
 							                (dpos + 1) / 2, type,
@@ -2098,12 +2150,14 @@ bool sseditor::on_specialstageobjs_motion_notify_event(GdkEventMotion *event) {
 					}
 					case eTriangle: {
 						int const delta = dpos >= 0 ? 1 : -1;
-						if (angledelta < 0)
+						if (angledelta < 0) {
 							angledelta = -angledelta;
-						if (angledelta > (IMAGE_SIZE / 2))
+						}
+						if (angledelta > (IMAGE_SIZE / 2)) {
 							angledelta = (IMAGE_SIZE / 2);
-						else if (angledelta < (IMAGE_SIZE / 4))
+						} else if (angledelta < (IMAGE_SIZE / 4)) {
 							angledelta = (IMAGE_SIZE / 4);
+						}
 						object_triangle(angle0, pos1, angledelta, -delta,
 						                -dpos, type, true, insertstack);
 						break;
@@ -2122,22 +2176,25 @@ bool sseditor::on_specialstageobjs_motion_notify_event(GdkEventMotion *event) {
 	update();
 
 	if (mode != eSelectMode || drawbox || (event->state & GDK_BUTTON1_MASK) == 0
-	        || !hotspot.valid() || selection.find(hotspot) == selection.end())
+	        || !hotspot.valid() || selection.find(hotspot) == selection.end()) {
 		return true;
+	}
 
 	dragging = true;
 	vector<Gtk::TargetEntry> vec;
-	vec.push_back(Gtk::TargetEntry("SpecialStageObjects", Gtk::TargetFlags(0), 1));
+	vec.emplace_back("SpecialStageObjects", Gtk::TargetFlags(0), 1);
 	Glib::RefPtr<Gtk::TargetList> lst = Gtk::TargetList::create(vec);
 	pspecialstageobjs->drag_begin(lst, Gdk::ACTION_MOVE, 1, reinterpret_cast<GdkEvent *>(event));
 	return true;
 }
 
 void sseditor::on_specialstageobjs_drag_begin(
-    Glib::RefPtr<Gdk::DragContext> const &UNUSED(targets)
+    Glib::RefPtr<Gdk::DragContext> const &targets
 ) {
-	if (selection.empty())
+	ignore_unused_variable_warning(targets);
+	if (selection.empty()) {
 		return;
+	}
 
 	sourcestack = selection;
 
@@ -2146,22 +2203,25 @@ void sseditor::on_specialstageobjs_drag_begin(
 }
 
 bool sseditor::on_drag_motion(
-    Glib::RefPtr<Gdk::DragContext> const &UNUSED(context),
-    int x, int y, guint UNUSED(time)
+    Glib::RefPtr<Gdk::DragContext> const &context,
+    int x, int y, guint time
 ) {
-	if (y < 5)
+	ignore_unused_variable_warning(context, time);
+	if (y < 5) {
 		pvscrollbar->set_value(pvscrollbar->get_value() - 4.0);
-	else if (draw_height - y < 5)
+	} else if (draw_height - y < 5) {
 		pvscrollbar->set_value(pvscrollbar->get_value() + 4.0);
+	}
 	int dangle, dpos;
 	if (hotspot.valid()) {
 		dangle = hotspot.get_angle();
 		dpos = segpos[hotspot.get_segment()] + hotspot.get_pos();
 	} else {
-		if (snaptogrid)
+		if (snaptogrid) {
 			dangle = x_to_angle_constrained(x);
-		else
+		} else {
 			dangle = x_to_angle(x);
+		}
 
 		dpos = y / IMAGE_SIZE + pvscrollbar->get_value();
 	}
@@ -2171,21 +2231,20 @@ bool sseditor::on_drag_motion(
 
 	insertstack.clear();
 
-	if (dangle == 0 && dpos == 0)
+	if (dangle == 0 && dpos == 0) {
 		insertstack = sourcestack;
-	else {
+	} else {
 		//sslevels *currlvl = specialstages->get_stage(currstage);
 		int maxpos = endpos - 1;
-		for (set<object>::iterator it = sourcestack.begin();
-		     it != sourcestack.end(); ++it) {
-			object obj(*it);
+		for (auto obj : sourcestack) {
 			obj.set_angle((obj.get_angle() + dangle) & 0xff);
 			int pos = segpos[obj.get_segment()] + obj.get_pos() + dpos;
 
-			if (pos < 0)
+			if (pos < 0) {
 				pos = 0;
-			else if (pos > maxpos)
+			} else if (pos > maxpos) {
 				pos = maxpos;
+			}
 
 			int seg = get_segment(pos);
 			obj.set_pos(pos - segpos[seg]);
@@ -2202,36 +2261,39 @@ bool sseditor::on_drag_motion(
 }
 
 void sseditor::on_specialstageobjs_drag_data_get(
-    Glib::RefPtr<Gdk::DragContext> const &UNUSED(targets),
+    Glib::RefPtr<Gdk::DragContext> const &targets,
     Gtk::SelectionData &selection_data,
-    guint UNUSED(info), guint UNUSED(time)
+    guint info, guint time
 ) {
-	if (insertstack.empty())
+	ignore_unused_variable_warning(targets, info, time);
+	if (insertstack.empty()) {
 		return;
+	}
 
 	stringstream data(ios::in | ios::out | ios::binary);
-	for (set<object>::iterator it = insertstack.begin();
-	        it != insertstack.end(); ++it) {
-		Write1(data, it->get_segment() & 0xff);
-		Write1(data, it->get_angle() & 0xff);
-		Write1(data, it->get_pos() & 0xff);
-		Write1(data, int(it->get_type()) & 0xff);
+	for (const auto & elem : insertstack) {
+		Write1(data, elem.get_segment() & 0xff);
+		Write1(data, elem.get_angle() & 0xff);
+		Write1(data, elem.get_pos() & 0xff);
+		Write1(data, int(elem.get_type()) & 0xff);
 	}
 	selection_data.set("SpecialStageObjects", data.str());
 }
 
 void sseditor::on_specialstageobjs_drag_end(
-    Glib::RefPtr<Gdk::DragContext> const &UNUSED(context)
+    Glib::RefPtr<Gdk::DragContext> const &context
 ) {
+	ignore_unused_variable_warning(context);
 	dragging = false;
 }
 
 void sseditor::on_specialstageobjs_drag_data_received(
-    Glib::RefPtr<Gdk::DragContext> const &context, int UNUSED(x), int UNUSED(y),
-    Gtk::SelectionData const &selection_data, guint UNUSED(info), guint time
+    Glib::RefPtr<Gdk::DragContext> const &context, int x, int y,
+    Gtk::SelectionData const &selection_data, guint info, guint time
 ) {
+	ignore_unused_variable_warning(x, y, info);
 	if (selection_data.get_data_type() == "SpecialStageObjects"
-	    && selection_data.get_length() > 0) {
+	        && selection_data.get_length() > 0) {
 		//set<object> temp = sourcestack;
 		context->drag_finish(true, false, time);
 
@@ -2249,19 +2311,18 @@ void sseditor::on_specialstageobjs_drag_data_received(
 			    newpos = Read1(ptr);
 			sssegments::ObjectTypes newtype = sssegments::ObjectTypes(Read1(ptr));
 			len -= 4;
-			selection.insert(object(newseg, newangle, newpos, newtype));
+			selection.emplace(newseg, newangle, newpos, newtype);
 		}
 
 		if (!equal(sourcestack.begin(), sourcestack.end(),
-		                selection.begin(), ObjectMatchFunctor())) {
-			shared_ptr<abstract_action> act(new move_objects_action(currstage,
-			                                                        sourcestack,
-			                                                        selection));
+		           selection.begin(), ObjectMatchFunctor())) {
+			auto act = make_shared<move_objects_action>(currstage, sourcestack, selection);
 			do_action(act);
 		}
 		sourcestack.clear();
-	} else
+	} else {
 		context->drag_finish(false, false, time);
+	}
 
 	render();
 	update();

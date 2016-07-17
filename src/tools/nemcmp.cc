@@ -40,9 +40,9 @@ static void usage(char *prog) {
 
 int main(int argc, char *argv[]) {
 	static option long_options[] = {
-		{"extract"   , optional_argument, 0, 'x'},
-		{"crunch"    , no_argument      , 0, 'c'},
-		{0, 0, 0, 0}
+		{"extract"   , optional_argument, nullptr, 'x'},
+		{"crunch"    , no_argument      , nullptr, 'c'},
+		{nullptr, 0, nullptr, 0}
 	};
 
 	bool extract = false, printend = false, crunch = false;
@@ -52,8 +52,9 @@ int main(int argc, char *argv[]) {
 		int option_index = 0;
 		int c = getopt_long(argc, argv, "x::ic",
 		                    long_options, &option_index);
-		if (c == -1)
+		if (c == -1) {
 			break;
+		}
 
 		switch (c) {
 			case 'i':
@@ -61,8 +62,9 @@ int main(int argc, char *argv[]) {
 				break;
 			case 'x':
 				extract = true;
-				if (optarg)
-					pointer = strtoul(optarg, 0, 0);
+				if (optarg) {
+					pointer = strtoul(optarg, nullptr, 0);
+				}
 				break;
 			case 'c':
 				crunch = true;
@@ -114,10 +116,12 @@ int main(int argc, char *argv[]) {
 		if (extract) {
 			int endptr = 0;
 			nemesis::decode(fin, fout, pointer, &endptr);
-			if (printend)
+			if (printend) {
 				cout << "0x" << hex << setw(6) << setfill('0') << uppercase << right << endptr << endl;
-		} else
+			}
+		} else {
 			nemesis::encode(fin, fout);
+		}
 	}
 	return 0;
 }

@@ -26,6 +26,7 @@
 #include "nemesis.h"
 #include "ssobjfile.h"
 #include "bigendian_io.h"
+#include "ignore_unused_variable_warning.h"
 
 using namespace std;
 
@@ -37,7 +38,7 @@ ssobj_file::ssobj_file(string dir) {
 	objectfile = dir + SS_OBJECT_FILE;
 
 	ifstream fobj(objectfile.c_str(), ios::in | ios::binary),
-	    flay(layoutfile.c_str(), ios::in | ios::binary);
+	         flay(layoutfile.c_str(), ios::in | ios::binary);
 
 	if (!fobj.good() || !flay.good()) {
 		error = true;
@@ -65,12 +66,14 @@ void ssobj_file::read() {
 	read_internal(objfile, layfile);
 }
 
-void ssobj_file::read_backup(int UNUSED(i)) {
+void ssobj_file::read_backup(int i) {
+	ignore_unused_variable_warning(i);
 	ifstream fobj((objectfile + "~").c_str(), ios::in | ios::binary),
 	         flay((layoutfile + "~").c_str(), ios::in | ios::binary);
 
-	if (fobj.good() && flay.good())
+	if (fobj.good() && flay.good()) {
 		read_internal(fobj, flay);
+	}
 }
 
 void ssobj_file::read_snapshot(int i) {
@@ -80,8 +83,9 @@ void ssobj_file::read_snapshot(int i) {
 	ifstream fobj((objectfile + num).c_str(), ios::in | ios::binary),
 	         flay((layoutfile + num).c_str(), ios::in | ios::binary);
 
-	if (fobj.good() && flay.good())
+	if (fobj.good() && flay.good()) {
 		read_internal(fobj, flay);
+	}
 }
 
 void ssobj_file::read_internal(istream &objfile, istream &layfile) {
@@ -125,9 +129,9 @@ void ssobj_file::read_internal(istream &objfile, istream &layfile) {
 
 size_t ssobj_file::size() const {
 	size_t sz = 2 * stages.size();
-	for (vector<sslevels>::const_iterator it = stages.begin();
-	     it != stages.end(); ++it)
-		sz += it->size();
+	for (const auto & elem : stages) {
+		sz += elem.size();
+	}
 	return sz;
 }
 
@@ -135,10 +139,8 @@ void ssobj_file::print() const {
 	char buf[0x103];
 	buf[0x102] = 0;
 	memset(buf, '=', sizeof(buf) - 1);
-	for (vector<sslevels>::const_iterator it = stages.begin();
-	     it != stages.end(); ++it) {
+	for (const auto & sd : stages) {
 		cout << buf << endl;
-		sslevels const &sd = *it;
 		sd.print();
 	}
 }
@@ -161,7 +163,7 @@ void ssobj_file::write() const {
 
 	write_internal(objfile, layfile);
 
-	fstream fobj(objectfile.c_str(), ios::in|ios::out|ios::binary|ios::trunc);
+	fstream fobj(objectfile.c_str(), ios::in | ios::out | ios::binary | ios::trunc);
 	ofstream flay(layoutfile.c_str(), ios::out | ios::binary);
 	objfile.seekg(0);
 	kosinski::encode(objfile, fobj);
@@ -174,8 +176,9 @@ void ssobj_file::write_backup() const {
 	ofstream fobj((objectfile + "~").c_str(), ios::out | ios::binary),
 	         flay((layoutfile + "~").c_str(), ios::out | ios::binary);
 
-	if (fobj.good() && flay.good())
+	if (fobj.good() && flay.good()) {
 		write_internal(fobj, flay);
+	}
 }
 
 void ssobj_file::write_snapshot(int i) const {
@@ -185,23 +188,20 @@ void ssobj_file::write_snapshot(int i) const {
 	ofstream fobj((objectfile + num).c_str(), ios::out | ios::binary),
 	         flay((layoutfile + num).c_str(), ios::out | ios::binary);
 
-	if (fobj.good() && flay.good())
+	if (fobj.good() && flay.good()) {
 		write_internal(fobj, flay);
+	}
 }
 
 void ssobj_file::write_internal(ostream &objfile, ostream &layfile) const {
 	size_t sz = 2 * stages.size(), off = sz;
-	for (vector<sslevels>::const_iterator it = stages.begin();
-	     it != stages.end(); ++it) {
-		sslevels const &sd = *it;
+	for (const auto & sd : stages) {
 		BigEndian::Write2(objfile, sz);
 		BigEndian::Write2(layfile, off);
 		sz += sd.size();
 		off += sd.num_segments();
 	}
-	for (vector<sslevels>::const_iterator it = stages.begin();
-	     it != stages.end(); ++it) {
-		sslevels const &sd = *it;
+	for (const auto & sd : stages) {
 		sd.write(objfile, layfile);
 	}
 }

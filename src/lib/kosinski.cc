@@ -31,6 +31,7 @@
 #include "bigendian_io.h"
 #include "bitstream.h"
 #include "lzss.h"
+#include "ignore_unused_variable_warning.h"
 
 using namespace std;
 
@@ -40,22 +41,22 @@ struct KosinskiAdaptor {
 	typedef unsigned short descriptor_t;
 	typedef littleendian<descriptor_t> descriptor_endian_t;
 	// Number of bits on descriptor bitfield.
-	constexpr static size_t NumDescBits = sizeof(descriptor_t) * 8;
+	constexpr static size_t const NumDescBits = sizeof(descriptor_t) * 8;
 	// Number of bits used in descriptor bitfield to signal the end-of-file
 	// marker sequence.
-	constexpr static size_t NumTermBits = 2;
+	constexpr static size_t const NumTermBits = 2;
 	// Flag that tells the compressor that new descriptor fields are needed
 	// as soon as the last bit in the previous one is used up.
-	constexpr static size_t NeedEarlyDescriptor = 1;
+	constexpr static size_t const NeedEarlyDescriptor = 1;
 	// Flag that marks the descriptor bits as being in little-endian bit
 	// order (that is, lowest bits come out first).
-	constexpr static size_t DescriptorLittleEndianBits = 1;
+	constexpr static size_t const DescriptorLittleEndianBits = 1;
 	// Size of the search buffer.
-	constexpr static size_t SearchBufSize = 8192;
+	constexpr static size_t const SearchBufSize = 8192;
 	// Size of the look-ahead buffer.
-	constexpr static size_t LookAheadBufSize = 256;
+	constexpr static size_t const LookAheadBufSize = 256;
 	// Total size of the sliding window.
-	constexpr static size_t SlidingWindowSize = SearchBufSize + LookAheadBufSize;
+	constexpr static size_t const SlidingWindowSize = SearchBufSize + LookAheadBufSize;
 	// Computes the cost of a symbolwise encoding, that is, the cost of encoding
 	// one single symbol..
 	constexpr static size_t symbolwise_weight() noexcept {
@@ -66,23 +67,24 @@ struct KosinskiAdaptor {
 	// "off" vertices ago, for matches with len > 1.
 	// A return of "numeric_limits<size_t>::max()" means "infinite",
 	// or "no edge".
-	static size_t dictionary_weight(size_t dist, size_t len) noexcept {
+	constexpr static size_t dictionary_weight(size_t dist, size_t len) noexcept {
 		// Preconditions:
 		// len > 1 && len <= LookAheadBufSize && dist != 0 && dist <= SearchBufSize
-		if (len == 2 && dist > 256)
+		if (len == 2 && dist > 256) {
 			// Can't represent this except by inlining both nodes.
-			return numeric_limits<size_t>::max();	// "infinite"
-		else if (len <= 5 && dist <= 256)
+			return numeric_limits<size_t>::max();   // "infinite"
+		} else if (len <= 5 && dist <= 256) {
 			// Inline dictionary match: 2-bit descriptor, 2-bit count, 8-bit distance.
 			return 2 + 2 + 8;
-		else if (len >= 3 && len <= 9)
+		} else if (len >= 3 && len <= 9) {
 			// Separate dictionary match, short form: 2-bit descriptor, 13-bit distance,
 			// 3-bit length.
 			return 2 + 13 + 3;
-		else //if (len >= 3 && len <= 256)
+		} else { //if (len >= 3 && len <= 256)
 			// Separate dictionary match, long form: 2-bit descriptor, 13-bit distance,
 			// 3-bit marker (zero), 8-bit length.
 			return 2 + 13 + 8 + 3;
+		}
 	}
 	// Given an edge, computes how many bits are used in the descriptor field.
 	static size_t desc_bits(AdjListNode const &edge) noexcept {
@@ -91,13 +93,14 @@ struct KosinskiAdaptor {
 		return edge.get_weight() & 7;
 	}
 	// Kosinski finds no additional matches over normal LZSS.
-	static void extra_matches(stream_t const *UNUSED(data),
-	                          size_t UNUSED(basenode),
-	                          size_t UNUSED(ubound), size_t UNUSED(lbound),
-	                          LZSSGraph<KosinskiAdaptor>::MatchVector &UNUSED(matches)) noexcept {
+	constexpr static void extra_matches(stream_t const *data,
+	                          size_t basenode,
+	                          size_t ubound, size_t lbound,
+	                          LZSSGraph<KosinskiAdaptor>::MatchVector &matches) noexcept {
+		ignore_unused_variable_warning(data, basenode, ubound, lbound, matches);
 	}
 	// KosinskiM needs to pad each module to a multiple of 16 bytes.
-	static size_t get_padding(size_t totallen, size_t padmask) noexcept {
+	constexpr static size_t get_padding(size_t totallen, size_t padmask) noexcept {
 		// Add in the size of the end-of-file marker.
 		if (!padmask) {
 			return 0;
@@ -132,10 +135,11 @@ void kosinski::decode_internal(istream &in, iostream &Dst, size_t &DecBytes) {
 				if (!Count) {
 					// 3-byte dictionary match.
 					Count = src.getbyte();
-					if (!Count)
+					if (!Count) {
 						break;
-					else if (Count == 1)
+					} else if (Count == 1) {
 						continue;
+					}
 					Count += 1;
 				} else {
 					// 2-byte dictionary match.
@@ -179,28 +183,32 @@ bool kosinski::decode(istream &Src, iostream &Dst,
 	in << Src.rdbuf();
 
 	// Pad to even length, for safety.
-	if ((sz & 1) != 0)
+	if ((sz & 1) != 0) {
 		in.put(0x00);
+	}
 
 	in.seekg(0);
 
 	if (Moduled) {
 		streamsize const PadMask = ModulePadding - 1;
 		size_t FullSize = BigEndian::Read2(in);
-		if (FullSize == 0xA000)
+		if (FullSize == 0xA000) {
 			FullSize = 0x8000;
-		
+		}
+
 		while (true) {
 			decode_internal(in, Dst, DecBytes);
-			if (DecBytes >= FullSize)
+			if (DecBytes >= FullSize) {
 				break;
+			}
 
 			// Skip padding between modules
 			size_t paddingEnd = (((size_t(in.tellg()) - 2) + PadMask) & ~PadMask) + 2;
 			in.seekg(paddingEnd);
 		}
-	} else
+	} else {
 		decode_internal(in, Dst, DecBytes);
+	}
 
 	return true;
 }
@@ -301,19 +309,21 @@ bool kosinski::encode(istream &Src, ostream &Dst, bool Moduled, streamoff Module
 	Src.seekg(0, ios::end);
 	streamsize BSize = Src.tellg();
 	Src.seekg(0);
-	char *const Buffer = new char[BSize];
+	auto const Buffer = new char[BSize];
 	unsigned char const *ptr = reinterpret_cast<unsigned char *>(Buffer);
 	Src.read(Buffer, BSize);
 
 	if (Moduled) {
-		if (BSize > 65535)  // Decompressed size would fill RAM or VRAM.
+		if (BSize > 65535) {  // Decompressed size would fill RAM or VRAM.
 			return false;
+		}
 
 		streamoff FullSize = BSize, CompBytes = 0;
 		streamsize const PadMask = ModulePadding - 1;
 
-		if (BSize > ModuleSize)
+		if (BSize > ModuleSize) {
 			BSize = ModuleSize;
+		}
 
 		BigEndian::Write2(Dst, FullSize);
 
@@ -325,8 +335,9 @@ bool kosinski::encode(istream &Src, ostream &Dst, bool Moduled, streamoff Module
 
 			ptr += BSize;
 
-			if (CompBytes >= FullSize)
+			if (CompBytes >= FullSize) {
 				break;
+			}
 
 			// Padding between modules
 			size_t paddingEnd = (((size_t(Dst.tellp()) - 2) + PadMask) & ~PadMask) + 2;
@@ -341,12 +352,14 @@ bool kosinski::encode(istream &Src, ostream &Dst, bool Moduled, streamoff Module
 
 			BSize = min(ModuleSize, FullSize - CompBytes);
 		}
-	} else
+	} else {
 		encode_internal(Dst, ptr, BSize, 1u);
+	}
 
 	// Pad to even size.
-	if ((Dst.tellp() & 1) != 0)
+	if ((Dst.tellp() & 1) != 0) {
 		Dst.put(0);
+	}
 
 	delete [] Buffer;
 	return true;

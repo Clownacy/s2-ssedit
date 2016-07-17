@@ -35,9 +35,9 @@ static void usage(char *prog) {
 
 int main(int argc, char *argv[]) {
 	static option long_options[] = {
-		{"extract", optional_argument, 0, 'x'},
-		{"padding", no_argument      , 0, 'p'},
-		{0, 0, 0, 0}
+		{"extract", optional_argument, nullptr, 'x'},
+		{"padding", no_argument      , nullptr, 'p'},
+		{nullptr, 0, nullptr, 0}
 	};
 
 	bool extract = false, padding = false;
@@ -47,14 +47,16 @@ int main(int argc, char *argv[]) {
 		int option_index = 0;
 		int c = getopt_long(argc, argv, "x::p",
 		                    long_options, &option_index);
-		if (c == -1)
+		if (c == -1) {
 			break;
+		}
 
 		switch (c) {
 			case 'x':
 				extract = true;
-				if (optarg)
-					pointer = strtoul(optarg, 0, 0);
+				if (optarg) {
+					pointer = strtoul(optarg, nullptr, 0);
+				}
 				break;
 
 			case 'p':
@@ -80,10 +82,11 @@ int main(int argc, char *argv[]) {
 		return 3;
 	}
 
-	if (extract)
+	if (extract) {
 		enigma::decode(fin, fout, pointer, padding);
-	else
+	} else {
 		enigma::encode(fin, fout, padding);
+	}
 
 	return 0;
 }

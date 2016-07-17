@@ -16,23 +16,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _SSSEGMENTOBJS_H_
-#define _SSSEGMENTOBJS_H_
+#ifndef __SSSEGMENTOBJS_H
+#define __SSSEGMENTOBJS_H
 
 #include <map>
 #include <istream>
 #include <ostream>
 
-#ifdef UNUSED
-#elif defined(__GNUC__)
-#	define UNUSED(x) UNUSED_ ## x __attribute__((unused))
-#elif defined(__LCLINT__)
-#	define UNUSED(x) /*@unused@*/ x
-#elif defined(__cplusplus)
-#	define UNUSED(x)
-#else
-#	define UNUSED(x) x
-#endif
+#include "ignore_unused_variable_warning.h"
 
 class sssegments {
 public:
@@ -70,8 +61,9 @@ public:
 		copy(other);
 	}
 	sssegments &operator=(sssegments const &other) {
-		if (this != &other)
+		if (this != &other) {
 			copy(other);
+		}
 		return *this;
 	}
 	void copy(sssegments const &other) {
@@ -105,7 +97,8 @@ public:
 	SegmentGeometry get_geometry() const {
 		return geometry;
 	}
-	static unsigned int get_length(SegmentGeometry UNUSED(geometry)) {
+	static unsigned int get_length(SegmentGeometry geometry) {
+		ignore_unused_variable_warning(geometry);
 		// Not yet:
 		/*
 		switch (geometry)
@@ -142,36 +135,39 @@ public:
 		return objects[row];
 	}
 	bool exists(unsigned char row, unsigned char angle, ObjectTypes &type) const {
-		segobjs::const_iterator it = objects.find(row);
-		if (it == objects.end())
+		auto it = objects.find(row);
+		if (it == objects.end()) {
 			return false;
-
+		}
 		segobjs::mapped_type const &t = it->second;
-		segobjs::mapped_type::const_iterator it2 = t.find(angle);
-		if (it2 == t.end())
+		auto it2 = t.find(angle);
+		if (it2 == t.end()) {
 			return false;
-
+		}
 		type = it2->second;
 		return true;
 	}
 	void update(unsigned char row, unsigned char angle, ObjectTypes type, bool insert) {
-		segobjs::iterator it = objects.find(row);
+		auto it = objects.find(row);
 		if (it == objects.end()) {
-			if (!insert)
+			if (!insert) {
 				return;
+			}
 			segobjs::mapped_type t;
 			t[angle] = type;
 			objects[row] = t;
 		} else {
 			segobjs::mapped_type &t = it->second;
-			segobjs::mapped_type::iterator it2 = t.find(angle);
+			auto it2 = t.find(angle);
 			if (it2 == t.end()) {
-				if (!insert)
+				if (!insert) {
 					return;
+				}
 				t[angle] = type;
 			} else {
-				if (it2->second == type)
+				if (it2->second == type) {
 					return;
+				}
 				if (it2->second == eRing) {
 					numrings--;
 					numbombs++;
@@ -183,29 +179,33 @@ public:
 				return;
 			}
 		}
-		if ((angle & 0x80) == 0)
+		if ((angle & 0x80) == 0) {
 			numshadows++;
-		if (type == eRing)
+		}
+		if (type == eRing) {
 			numrings++;
-		else
+		} else {
 			numbombs++;
+		}
 	}
 	void remove(unsigned char row, unsigned char angle) {
-		segobjs::iterator it = objects.find(row);
-		if (it == objects.end())
+		auto it = objects.find(row);
+		if (it == objects.end()) {
 			return;
-
+		}
 		segobjs::mapped_type &t = it->second;
-		segobjs::mapped_type::iterator it2 = t.find(angle);
-		if (it2 == t.end())
+		auto it2 = t.find(angle);
+		if (it2 == t.end()) {
 			return;
-
-		if ((angle & 0x80) == 0)
+		}
+		if ((angle & 0x80) == 0) {
 			numshadows--;
-		if (it2->second == eRing)
+		}
+		if (it2->second == eRing) {
 			numrings--;
-		else
+		} else {
 			numbombs--;
+		}
 		t.erase(it2);
 	}
 
@@ -213,4 +213,4 @@ public:
 	void write(std::ostream &out, std::ostream &lay) const;
 };
 
-#endif // _SSSEGMENTOBJS_H_
+#endif // __SSSEGMENTOBJS_H

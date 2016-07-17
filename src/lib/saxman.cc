@@ -26,6 +26,7 @@
 #include "bigendian_io.h"
 #include "bitstream.h"
 #include "lzss.h"
+#include "ignore_unused_variable_warning.h"
 
 using namespace std;
 
@@ -35,23 +36,23 @@ struct SaxmanAdaptor {
 	typedef unsigned char descriptor_t;
 	typedef littleendian<descriptor_t> descriptor_endian_t;
 	// Number of bits on descriptor bitfield.
-	constexpr static size_t NumDescBits = sizeof(descriptor_t) * 8;
+	constexpr static size_t const NumDescBits = sizeof(descriptor_t) * 8;
 	// Number of bits used in descriptor bitfield to signal the end-of-file
 	// marker sequence.
-	constexpr static size_t NumTermBits = 0;
+	constexpr static size_t const NumTermBits = 0;
 	// Flag that tells the compressor that new descriptor fields is needed
 	// when a new bit is needed and all bits in the previous one have been
 	// used up.
-	constexpr static size_t NeedEarlyDescriptor = 0;
+	constexpr static size_t const NeedEarlyDescriptor = 0;
 	// Flag that marks the descriptor bits as being in little-endian bit
 	// order (that is, lowest bits come out first).
-	constexpr static size_t DescriptorLittleEndianBits = 1;
+	constexpr static size_t const DescriptorLittleEndianBits = 1;
 	// Size of the search buffer.
-	constexpr static size_t SearchBufSize = 4096;
+	constexpr static size_t const SearchBufSize = 4096;
 	// Size of the look-ahead buffer.
-	constexpr static size_t LookAheadBufSize = 18;
+	constexpr static size_t const LookAheadBufSize = 18;
 	// Total size of the sliding window.
-	constexpr static size_t SlidingWindowSize = SearchBufSize + LookAheadBufSize;
+	constexpr static size_t const SlidingWindowSize = SearchBufSize + LookAheadBufSize;
 	// Computes the cost of a symbolwise encoding, that is, the cost of encoding
 	// one single symbol..
 	constexpr static size_t symbolwise_weight() noexcept {
@@ -62,32 +63,38 @@ struct SaxmanAdaptor {
 	// "off" vertices ago, for matches with len > 1.
 	// A return of "numeric_limits<size_t>::max()" means "infinite",
 	// or "no edge".
-	static size_t dictionary_weight(size_t UNUSED(dist), size_t len) noexcept {
+	constexpr static size_t dictionary_weight(size_t dist, size_t len) noexcept {
 		// Preconditions:
 		// len > 1 && len <= LookAheadBufSize && dist != 0 && dist <= SearchBufSize
-		if (len == 2)
-			return numeric_limits<size_t>::max();	// "infinite"
-		else
+		ignore_unused_variable_warning(dist);
+		if (len == 2) {
+			return numeric_limits<size_t>::max();   // "infinite"
+		} else {
 			// Dictionary match: 1-bit descriptor, 12-bit offset, 4-bit length.
 			return 1 + 12 + 4;
+		}
 	}
 	// Given an edge, computes how many bits are used in the descriptor field.
-	static size_t desc_bits(AdjListNode const &UNUSED(edge)) noexcept {
+	constexpr static size_t desc_bits(AdjListNode const &edge) noexcept {
 		// Saxman always uses a single bit descriptor.
+		ignore_unused_variable_warning(edge);
 		return 1;
 	}
 	// Saxman allows encoding of a sequence of zeroes with no previous match.
 	static void extra_matches(stream_t const *data, size_t basenode,
-	                          size_t ubound, size_t UNUSED(lbound),
+	                          size_t ubound, size_t lbound,
 	                          LZSSGraph<SaxmanAdaptor>::MatchVector &matches) noexcept {
+		ignore_unused_variable_warning(lbound);
 		// Can't encode zero match after this point.
-		if (basenode >= 0xFFF)
+		if (basenode >= 0xFFF) {
 			return;
+		}
 		// Try matching zeroes.
 		size_t jj = 0;
 		while (data[basenode + jj] == 0) {
-			if (++jj >= ubound)
+			if (++jj >= ubound) {
 				break;
+			}
 		}
 		// Need at least 3 zeroes in sequence.
 		if (jj >= 3) {
@@ -98,7 +105,8 @@ struct SaxmanAdaptor {
 		}
 	}
 	// Saxman needs no additional padding at the end-of-file.
-	static size_t get_padding(size_t UNUSED(totallen), size_t UNUSED(padmask)) noexcept {
+	constexpr static size_t get_padding(size_t totallen, size_t padmask) noexcept {
+		ignore_unused_variable_warning(totallen, padmask);
 		return 0;
 	}
 };
@@ -115,12 +123,14 @@ void saxman::decode_internal(istream &in, iostream &Dst,
 	while (in.good() && in.tellg() < BSize) {
 		if (src.descbit()) {
 			// Symbolwise match.
-			if (in.peek() == EOF)
+			if (in.peek() == EOF) {
 				break;
+			}
 			Write1(Dst, src.getbyte());
 		} else {
-			if (in.peek() == EOF)
+			if (in.peek() == EOF) {
 				break;
+			}
 			// Dictionary match.
 			// Offset and length of match.
 			size_t offset = src.getbyte();
@@ -209,7 +219,7 @@ bool saxman::encode(istream &Src, ostream &Dst, bool WithSize) {
 	Src.seekg(0, ios::end);
 	streamsize BSize = Src.tellg();
 	Src.seekg(0);
-	char *const Buffer = new char[BSize];
+	auto const Buffer = new char[BSize];
 	unsigned char const *ptr = reinterpret_cast<unsigned char *>(Buffer);
 	Src.read(Buffer, BSize);
 
