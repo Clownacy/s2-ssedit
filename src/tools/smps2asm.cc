@@ -532,16 +532,14 @@ public:
 		} else {
 			// Number of FM+DAC, PSG channels.
 			int nfm = Read1(in), npsg = Read1(in);
+			if (sonicver == 6) ++nfm;	// Chaotix is missing the DAC channel
 			// Output channel setup header.
 			PrintMacro(out, "smpsHeaderChan");
-			PrintHex2(out, nfm , false);
-			if (sonicver == 6)
-			{
+			PrintHex2(out, nfm, false);
+			if (sonicver == 6) {
 				PrintHex2(out, npsg, false);
-				PrintHex2(out, 4, true);
-			}
-			else
-			{
+				PrintHex2(out, 4   , true);
+			} else {
 				PrintHex2(out, npsg, true);
 			}
 			out << endl;
@@ -556,28 +554,40 @@ public:
 
 			// First come the DAC and FM channels.
 			for (int i = 0; i < nfm; i++) {
-				int ptr = IO::read_header_pointer(in, offset),
-				    keydisp = Read1(in), initvol = Read1(in);
-
 				string lbl = projname;
-				LocTraits::LocType type;
-				if (i == 0 && sonicver != 6) {
+				if (i == 0) {
 					// DAC is always first.
-					lbl += "_DAC";
-					labels.emplace(ptr, lbl);
-					tracklabels.insert(lbl);
-					PrintMacro(out, "smpsHeaderDAC");
-					out << lbl;
-					if (keydisp || initvol) {
-						out << ",\t";
-						PrintHex2(out, keydisp, false);
-						PrintHex2(out, initvol, true);
+					if (sonicver == 6) {
+						// Create dummy DAC track for Chaotix songs
+						lbl += "_DAC";
+						PrintMacro(out, "smpsHeaderDAC");
+						out << lbl;
+						out << endl;
+					} else {
+						int ptr = IO::read_header_pointer(in, offset),
+						    keydisp = Read1(in), initvol = Read1(in);
+
+						lbl += "_DAC";
+						labels.emplace(ptr, lbl);
+						tracklabels.insert(lbl);
+						PrintMacro(out, "smpsHeaderDAC");
+						out << lbl;
+						if (keydisp || initvol) {
+							out << ",\t";
+							PrintHex2(out, keydisp, false);
+							PrintHex2(out, initvol, true);
+						}
+						out << endl;
+
+						// Add to queue.
+						todo.push(LocTraits(ptr, LocTraits::eDACInit, keydisp));
 					}
-					out << endl;
-					type = LocTraits::eDACInit;
 				} else {
 					// Now come FM channels.
-					char c = i + (sonicver != 6 ? '0' : '1');
+					int ptr = IO::read_header_pointer(in, offset),
+					    keydisp = Read1(in), initvol = Read1(in);
+
+					char c = i + '0';
 					lbl += "_FM";
 					lbl += c;
 					labels.emplace(ptr, lbl);
@@ -587,11 +597,10 @@ public:
 					PrintHex2(out, keydisp, false);
 					PrintHex2(out, initvol, true);
 					out << endl;
-					type = LocTraits::eFMInit;
-				}
 
-				// Add to queue.
-				todo.push(LocTraits(ptr, type, keydisp));
+					// Add to queue.
+					todo.push(LocTraits(ptr, LocTraits::eFMInit, keydisp));
+				}
 			}
 
 			// Time for PSG channels.
@@ -646,6 +655,13 @@ public:
 		// Mark all contents so far as having been explored.
 		for (size_t i = startloc; i < size_t(in.tellg()); i++) {
 			explored.emplace(i, LocTraits::eHeader);
+		}
+
+		if (sonicver == 6) {
+			// print dummy DAC data (for compatibility with drivers with DAC support)
+			out << endl << "; Dummy DAC data" << endl;
+			out << projname << "_DAC" << ":" << endl;
+			out << "\tsmpsStop" << endl;
 		}
 
 		while (todo.size() > 1) {
