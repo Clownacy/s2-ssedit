@@ -356,7 +356,9 @@ void BaseNote::print_psg_tone(ostream &out, int tone, int sonicver,
 		return;
 	}
 
-	if (sonicver >= 3) {
+	if (sonicver == 6) {
+		out << "KCVolEnv_";
+	} else if (sonicver >= 3) {
 		out << "sTone_";
 	} else {
 		out << "fTone_";

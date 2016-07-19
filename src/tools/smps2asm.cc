@@ -535,7 +535,15 @@ public:
 			// Output channel setup header.
 			PrintMacro(out, "smpsHeaderChan");
 			PrintHex2(out, nfm , false);
-			PrintHex2(out, npsg, true);
+			if (sonicver == 6)
+			{
+				PrintHex2(out, npsg, false);
+				PrintHex2(out, 4, true);
+			}
+			else
+			{
+				PrintHex2(out, npsg, true);
+			}
 			out << endl;
 
 			// Tempo dividing timing, main tempo modifier.
@@ -553,7 +561,7 @@ public:
 
 				string lbl = projname;
 				LocTraits::LocType type;
-				if (i == 0) {
+				if (i == 0 && sonicver != 6) {
 					// DAC is always first.
 					lbl += "_DAC";
 					labels.emplace(ptr, lbl);
@@ -569,7 +577,7 @@ public:
 					type = LocTraits::eDACInit;
 				} else {
 					// Now come FM channels.
-					char c = i + '0';
+					char c = i + (sonicver != 6 ? '0' : '1');
 					lbl += "_FM";
 					lbl += c;
 					labels.emplace(ptr, lbl);
@@ -608,6 +616,30 @@ public:
 
 				// Add to queue.
 				todo.push(LocTraits(ptr, LocTraits::ePSGInit, keydisp));
+			}
+
+			if (sonicver == 6)
+			{
+				// Time for PWM channels.
+				for (int i = 0; i < 4; i++) {
+					int ptr     = IO::read_header_pointer(in, offset),
+					    keydisp = Read1(in), initvol  = Read1(in);
+
+					string lbl = projname;
+					char c = i + '1';
+					lbl += "_PWM";
+					lbl += c;
+					labels.emplace(ptr, lbl);
+					tracklabels.insert(lbl);
+					PrintMacro(out, "smpsHeaderPWM");
+					out << lbl << ",\t";
+					PrintHex2(out, keydisp, false);
+					PrintHex2(out, initvol, true);
+					out << endl;
+
+					// Add to queue.
+					todo.push(LocTraits(ptr, LocTraits::ePWMInit, keydisp));
+				}
 			}
 		}
 
@@ -867,8 +899,8 @@ static void usage() {
 	     << "\t             \tis {offsetval}. Ignored if used with --sonicver 1." << endl;
 	cerr << "\t-v,--sonicver\tSets Sonic version to {version}. This also sets underlying" << endl
 	     << "\t             \tSMPS type. {version} can be '1' Sonic 1, '2' for Sonic 2 or" << endl
-	     << "\t             \t'3' for Sonic 3, '4' for Sonic & Knuckles, or '5' for Sonic" << endl
-	     << "\t             \t3D Blast." << endl;
+	     << "\t             \t'3' for Sonic 3, '4' for Sonic & Knuckles, '5' for Sonic" << endl
+	     << "\t             \t3D Blast, or '6' for Knuckles' Chaotix." << endl;
 	cerr << "\t-3,--s3kmode \tThis flag is valid for Sonic 1 and Sonic 2 only; this will" << endl
 	     << "\t             \tcause all sequences of durations after a rest to be printed" << endl
 	     << "\t             \twith the rests shown explicitly." << endl
@@ -981,7 +1013,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	if (argc - optind < 3 || sonicver < 1 || sonicver > 5
+	if (argc - optind < 3 || sonicver < 1 || sonicver > 6
 	        || (!saxman && pointer != 0 && offset != 0)
 	        || (bankmode && (pointer != 0 || saxman || sonicver == 1))
 	        || (s3kmode && sonicver > 2)) {
