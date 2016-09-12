@@ -143,8 +143,18 @@ static void print_dac_sample(ostream &out, int val, int sonicver, bool flag) {
 		"dIntroKick", "dFinalFightMetalCrash"
 	};
 
+	static string kcpwmlut[] = {
+		"nRst", "pwmElectricKick", "pwmElectricSnare", "pwmSplashCymbal", "pwmRideBell", "pwmHighTom",
+		"pwmMidTom", "pwmLowTom", "pwmElectricHiHat", "pwmCrashCymbal", "pwmClap",
+		"pwmAcousticKick", "pwmAcousticSnare", "pwmBell", "pwmFingersSnapping",
+		"pwmCowbell", "pwmHighClick", "pwmLowClick", "pwmHighBongo",
+		"pwmLowBongo", "pwmHighTimpani", "pwmLowTimpani", "pwmSilence"
+	};
+
 	size_t note = val - 0x80;
-	if (sonicver == 5 && note <= sizeof(s3ddaclut) / sizeof(s3ddaclut[0])) {
+	if (sonicver == 6 && note <= sizeof(kcpwmlut) / sizeof(kcpwmlut[0])) {
+		PrintName(out, kcpwmlut[note], flag);
+	} else if (sonicver == 5 && note <= sizeof(s3ddaclut) / sizeof(s3ddaclut[0])) {
 		PrintName(out, s3ddaclut[note], flag);
 	} else if (sonicver == 4 && note <= sizeof(skdaclut) / sizeof(skdaclut[0])) {
 		PrintName(out, skdaclut[note], flag);
